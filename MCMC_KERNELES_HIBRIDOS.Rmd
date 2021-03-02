@@ -1,0 +1,603 @@
+---
+title: "Tarea 7"
+output: pdf_document
+---
+
+
+*Ejercicios MCMC INDEPENDITE*
+
+**Propuesta Erlang**
+
+En el caso de propuestas independientes, sabemos que la  función de probabilidad que nos indica si aceptar cierto punto está dado por:
+
+\[
+\rho=min(1,\frac{f(Y_{t})}{f(X_{t})}\frac{g(X_{t})}{g(Y_{t})})
+\]
+
+Donde la función f representa la distribución de la variable aleatoria de la que queremos simular, es decir Gama(2.7,2.8) y la g represente la propuesta Erlang(3,2.8), analiticamente: 
+
+\[
+f_{X}(x)=\frac{(2.8x)^{2.7-1}}{\Gamma(2.7)}2.8e^{-2.8x}
+\]
+
+\[
+g_{Y}(y)=\frac{2.8^{3}y{}^{3-1}}{(3-1)!}e^{-2.8y}
+\]
+
+
+Dadas las funciones tenemos que: (Nota: se omiten los índices para mayor claridad)
+
+\[
+\frac{f(Y_{t})}{f(X_{t})}\frac{g(X_{t})}{g(Y_{t})}=\frac{\frac{(2.8y)^{2.7-1}}{\Gamma(2.7)}2.8e^{-2.8y}}{\frac{(2.8x)^{2.7-1}}{\Gamma(2.7)}2.8e^{-2.8x}}*\frac{\frac{2.8^{3}x{}^{3-1}}{(3-1)!}e^{-2.8x}}{\frac{2.8^{3}y{}^{3-1}}{(3-1)!}e^{-2.8y}}
+\]
+
+reducimos la expresión:
+
+\[
+=\frac{(2.8y)^{1.7}e^{-2.8y}}{(2.8x)^{1.7}e^{-2.8x}}*\frac{x^{2}e^{-2.8x}}{y^{2}e^{-2.8y}}=\frac{y^{1.7}}{x^{1.7}}*\frac{x^{2}}{y^{2}}=y^{-0.3}x^{0.3}
+\]
+
+
+por tanto la función $\rho$ será:
+
+\[
+\rho=min(1,y^{-0.3}x^{0.3})
+\]
+
+
+
+***simulacion***
+
+
+Para simular primero se programó la función ro, que es la presentada anteriormente. Con esta se implementó el algoritmo:
+
+```{r, echo=FALSE}
+ro<- function(x,y){  #y es el propuesto
+  return(min(1,x^.3*y^(-.3)))
+}
+
+```
+
+
+```{r}
+sim<-function(pin, n){
+simula2<-rep() #vector que guardara los valores simulados 
+simula2[1]<-pin  # el punto inicial
+conteo<-0         #cuenta el num. de iteraciones para lograr n simulaciones 
+while(length(simula2)<n){
+  prop<-rgamma(1,3,2.8) #simulacion Erlang
+  u<-runif(1)   # uniforme en 0,1, para saber si aceptamos la propuesta 
+  if(u<ro(pin,prop)){    
+    simula2[(length(simula2)+1)]<-prop  #se guarda el propuesto aceprado 
+    pin<-prop
+  }
+  conteo<-conteo+1
+}
+resul<-c(conteo,simula2)  #1er dato corresponde al nÃºm de iteraciones 
+ return(resul)
+}
+
+```
+
+
+Cabe destacar que la función Erlang es un caso particular de la densidad Gama, por tanto para simularla en r, se puede hacer simulándola de una Gama(3,2.8).
+
+Hagamos 5,000 simulaciones.
+
+```{r}
+set.seed(0)
+aaa<-sim(1,5000)  ## el primer dato es el conteo
+
+```
+
+El número de veces que se tuvo que simular para conseguir 5,000 iteraciones, y el porcentaje de rechazo fue:
+
+```{r}
+aaa[1]  #total de iteraciones 
+1-5000/aaa[1]  #porcentaje de rechazo
+```
+
+
+graficamente se obtiene:
+
+```{r, echo=FALSE, fig.height=3, fig.width=4.5, echo=FALSE}
+##quitemos el dato del conteo, para tener solo las simulaciones
+aa<-rep()
+aa<-c(aaa[2:5001])
+
+plot(density(aa), xlim=c(0,10), ylim=c(0,0.8), main="simulaciones, MCMC")
+curve(dgamma(x,2.7,2.8), xlim = c(0,10), add=T, col="RED", ylim=c(0,.8))
+ 
+
+```
+
+
+como se observa se tiene un buen ajuste, la función teórica es casi igual a la de simulaciones. 
+
+Para obtener el valor del burning graficaremos el valor t, con el promedio de las primeras t simulaciones para observar hasta que punto se vuelve estacionaria 
+
+
+```{r, echo=FALSE, fig.height=3, fig.width=4.5, echo=FALSE}
+
+prom<-rep()
+for(i in 1:5000){
+  prom[i]<-mean(aa[1:i])
+}
+
+plot(seq(1,5000), prom, type="l", main = "PROMEDIOS", ylab = "PROMEDIOS", xlab="t")
+
+```
+
+
+Observamos que la serie converge aproximadamente a partir de ,la muestra 800, por tanto ese será el burnin elegido, a ese momento se llega a la distribución estacionaria. 
+
+con el burnin, gráficamente se obtiene: 
+
+```{r, echo=FALSE, fig.height=3, fig.width=4.5, echo=FALSE}
+
+plot(density(aa[800:5000]), xlim=c(0,10), ylim=c(0,0.8), main="simulaciones")
+curve(dgamma(x,2.7,2.8), add=T, col="RED")
+
+
+```
+
+
+Respecto al lag, se usó la paqueteria astsa para obtener la gráfica y datos de las autocorrelaciones
+
+```{r, echo=FALSE, fig.height=3, fig.width=4.5}
+#install.packages("astsa")
+library("astsa")
+
+aex<-acf2(aa[800:5000], main="autocorrelaciones eje X")
+```
+
+Como se observa respecto al lag, no se considera necesaria ninguna modificación, pues las autocorrelaciones muestran que solo la primera es significativa, lo que era de esperarse pues las cadenas de Markov, solo dependen de su valor anterior. 
+
+
+**Histograma**
+
+
+```{r,  echo=FALSE, fig.height=3, fig.width=4.5, echo=FALSE}
+hist(aa[800:5000], freq = FALSE, main="simulacion de G(2.7,2.8)",cex.main=0.75, ylim = c(0,0.8))
+curve(dgamma(x,2.7,2.8), add=T, col="red")
+```
+
+
+como se observa el método resulta muy ultil para simular esta varible. 
+
+
+
+
+***propuesta lognormal(1/2,1)***
+
+De manera análoga se construye el planteamiento.  Las funciones f y g, de la expresión $\rho$ son ahora la gamma(2.7,2.8) y la g lognormal(1/2,1):
+
+\[
+f_{X}(x)=\frac{(2.8x)^{2.7-1}}{\Gamma(2.7)}2.8e^{-2.8x}
+\]
+
+\[
+g_{Y}(y)=\frac{e^{-(ln(x)-1/2)^{2}/2}}{x\sqrt{2\pi}}
+\]
+
+
+
+asimismo, se calcula el valor de $\rho$ , tnemos que 
+
+
+\[
+\frac{f(Y_{t})}{f(X_{t})}\frac{g(X_{t})}{g(Y_{t})}=
+\]
+
+\[
+\frac{\frac{(2.8y)^{2.7-1}}{\Gamma(2.7)}2.8e^{-2.8y}}{\frac{(2.8x)^{2.7-1}}{\Gamma(2.7)}2.8e^{-2.8x}}*\frac{\frac{e^{-(ln(x)-1/2)^{2}/2}}{x\sqrt{2\pi}}}{\frac{e^{-(ln(y)-1/2)^{2}/2}}{y\sqrt{2\pi}}}=\frac{y^{1.7}e^{-2.8y}}{x^{1.7}e^{-2.8x}}*\frac{ye^{-(ln(x)-1/2)^{2}/2}}{xe^{-(ln(y)-1/2)^{2}/2}}=
+\]
+
+\[
+\frac{y^{2.7}}{x^{2.7}}e^{-2.8(y-x)}*e^{-1/2[(ln(x)-1/2)^{2}-(ln(y)-1/2)^{2}]}
+\]
+
+
+
+***algoritmo***
+
+
+Para crear el algoritmo, basta usar la función programada del incisio anterior con pequeñas modificaciones, la distribución de la propuesta, y la función $\rho$ cambian
+
+
+```{r, echo=FALSE}
+ro<-function(x,y){ #y es el propuesto 
+ (y^(2.7)/x^(2.7))*exp(-2.8*(y-x)-(1/2)*((log(x)-1/2)^2-(log(y)-1/2)^2))
+  
+}
+
+sim<-function(pin, n){
+  simula2<-rep()
+  simula2[1]<-pin
+  conteo<-0
+  while(length(simula2)<n){
+    prop<-rlnorm(1,1/2,1) #simular de la lognormal
+    u<-runif(1)
+    if(u<ro(pin,prop)){
+      simula2[(length(simula2)+1)]<-prop
+      pin<-prop
+    }
+    conteo<-conteo+1
+  }
+  resul<-c(conteo,simula2)
+  return(resul)
+}
+
+```
+
+Generamos nuevamente 5,000 simulaciones, el número de veces que se tuvo que rechazar, y el porcentaje de rechazo  fue 
+
+
+```{r}
+
+bbb<-sim(1,5000)  ## el primer dato es el conte
+##el numero de veces que se rechazo fue
+bbb[1]-5000
+
+1-5000/bbb[1]  ##porcentaje de rechazo
+```
+
+Como se observa el porcentaje de rechazo es mucho más alto que el del inciso anterior. 
+
+
+graficamene se obtiene que:
+
+```{r, echo=FALSE, fig.height=3, fig.width=4.5}
+
+##quitemos el dato del conteo, para tener solo las simulaciones
+
+
+bb<-rep()
+bb<-c(bbb[2:5001])
+
+plot(density(bb), xlim=c(0,10), ylim=c(0,0.8), main="simulaciones")
+
+
+curve(dgamma(x,2.7,2.8), xlim = c(0,10), add=T, col="RED", ylim=c(0,.8))
+
+
+```
+
+como se observa la grafica se ajusta lo suficientemente bien. 
+
+Para el burnin se procederá del mismo modo generando las gráficas de los promedios. 
+
+```{r, echo=FALSE, fig.height=3, fig.width=4.5}
+prom<-rep()
+for(i in 1:5000){
+  prom[i]<-mean(bb[1:i])
+}
+
+plot(seq(1,5000), prom, type="l")
+
+##vemos que aproximadamente a partir  de la 600 converge 
+
+```
+
+
+A partir de  la t=900 se observa una distribución estacionaria, por lo tanto se toma ese burnin, graficamente la densidad ahora es
+
+
+```{r, echo=FALSE, fig.height=3, fig.width=4.5, echo=FALSE}
+
+plot(density(bb[900:5000]), xlim=c(0,10), ylim=c(0,0.8), main="simulaciones")
+curve(dgamma(x,2.7,2.8), add=T, col="RED")
+
+
+```
+
+
+
+observemos las graficas de las autocorrelaciones
+
+```{r, echo=FALSE, fig.height=3, fig.width=4.5, echo=FALSE}
+
+
+aex<-acf2(bb[900:5000], main="autocorrelaciones eje X")
+```
+
+iggual que en el anterior,  respecto al lag, no se considera necesaria ninguna modificación, pues las autocorrelaciones muestran que sólo la primera es significativa, lo que era de esperarse dado que se simula una cadena de Markov. 
+
+**Histograma**
+
+
+```{r,  echo=FALSE, fig.height=3, fig.width=4.5, echo=FALSE}
+hist(bb[900:5000], freq = FALSE, main="simulacion de G(2.7,2.8)",cex.main=0.75, ylim = c(0,0.8), xlab="")
+curve(dgamma(x,2.7,2.8), add=T, col="red")
+```
+
+
+Como se observa se tiene un buen ajuste  respecto a la densidad teorica.
+
+
+
+
+
+**Pregunta 3**
+
+¿Con los argumentos de la pregunta 1 y 2 responda ¿Cuál de las dos propuestas fue mejor y por qué?
+
+Considero que fue mejor propuesta la primera. Se debe principalmente a que la densidad que se propuso era muy simular a la que se queria simular, por tanto se tenian tasas muy altas de aceptación. Contrario a la segunda propuesta donde el porcentaje de rechazazo superó el 40%.
+
+Computacionalmente resulta más eficiente simular con la primera propuesta que con la segunda, porque se acepta un mayor porcentaje de muestras y porque converge más rápido a la distribución estacionaria. 
+
+
+Asimismo, al calcular la función $\rho$ con la primer propuesta se ahorran muchas operaciones aritmeticas ineherente a la seguda.
+
+
+
+Respecto al ajuste con los histogramas también se muestra un mejor ajuste para la primer propuesta.
+
+
+
+```{r, warning=FALSE}
+library("dae")
+```
+
+
+#Ejercicio 4
+
+**Densisad posterior de la muestra**
+
+Sabemos que:
+
+\[
+t_{i}\sim Weibull(\alpha,\lambda)
+\]
+\[
+\lambda\mid\alpha\sim Gama(\alpha,\beta)
+\]
+\[
+\alpha\sim exp(c)
+\]
+\[
+f(t\mid\alpha,\lambda)=\alpha\lambda t_{i}^{\alpha-1}e^{-\lambda t_{i}^{\alpha}}
+\]
+
+
+Por tanto la densisdad posterior será: 
+
+ \[
+f(\alpha,\lambda\mid\overrightarrow{t_{i})}=\frac{f_{\overrightarrow{t_{i}}\mid\alpha,\lambda}(\overrightarrow{t_{i})}f_{\lambda\mid\alpha}(\lambda)f_{\alpha}(\alpha)}{f_{\overrightarrow{t}(\overrightarrow{t)}}}
+\]
+
+\[
+=(\Pi_{i=1}^{n}\alpha\lambda t_{i}^{\alpha-1}e^{-\lambda t_{i}^{\alpha}})\frac{\beta^{\alpha}}{\Gamma(\alpha)}e^{-\beta\lambda}x^{\alpha-1}ce^{-c\alpha}
+\]
+
+**B) simular**
+
+Para simular guardamos la muestra dada en un vector
+
+
+```{r}
+mm<-c(0.3499344,0.2453302,0.1724166,0.3073314,
+0.2614696,0.2785925,0.2562785,0.3871797, 0.2248742,0.3463315)
+length(mm)
+
+```
+
+creamos la funcion posterior:
+
+```{r}
+
+f<-function(alfa,la){
+    b<-3
+   c<-2
+  dexp(alfa,c)*dgamma(la,alfa,b)*(la*alfa)^(10)*prod(mm^(alfa-1))*exp(-alfa*sum(mm))  }
+  
+```
+
+Del mismo modo se programa el kernel, este estará compuesto de cuatro kernel's ponderados por un valor $\alpha_{i}$, donde la suma de estos es uno.
+
+
+El primero es el Kernel 0, que logra que la cadena se quedé en el punto en el que esta. Este es necesario, para lograr que la cadena sea fuertemente aperiódica. 
+
+El  segundo y cuarto surgen al obtener las marginales de la función posterior, (mueven sólo a una coordenada, concretamente la de la marginal). Resultan computacionalmente muy eficientes por tener la cualidad de aceptar cualquier propuesta con probabilidad 1. 
+
+las marginales  propuestas (vistas en clase) que se tienen son: 
+\[
+f(\lambda\mid\alpha,\overrightarrow{t})\propto\lambda^{n}e^{-\lambda\mathop{\Sigma_{1}^{n}}(t_{i}^{\alpha})}*e^{-\beta\lambda}\lambda^{\alpha-1}=\lambda^{n+\alpha-1}e^{-\lambda(\mathop{\Sigma_{1}^{n}}(t_{i}^{\alpha})+\beta)}
+\]
+ 
+ esta ultima ecuación, tiene la forma de la distribución 
+ 
+ $Gama(n+\alpha,\mathop{\Sigma_{1}^{n}}(t_{i}^{\alpha})+\beta)$
+ 
+ 
+ por otro lado, la marginal 
+ 
+ \[
+f(\alpha\mid\lambda,\overrightarrow{t})\propto\prod t_{i}^{\alpha-1}e^{-\lambda(\mathop{\Sigma_{1}^{n}}(t_{i}^{\alpha}))}*\frac{\beta^{\alpha}}{\Gamma(\alpha)}\lambda^{\alpha-1}e^{c\alpha}
+\]
+
+\[
+=\lambda^{\alpha+\alpha(log(\beta)-log(\Gamma(\alpha))}e^{-\lambda\mathop{\Sigma_{1}^{n}}(t_{i}^{\alpha})}e^{-c\alpha}\prod t_{i}^{\alpha-1}
+\]
+
+estas funciones serán las propuestas de Gibbs. Se aceptan con probabilidad 1.
+
+El tercero es una propuesta simétrica de una normal bivariada, se eligió por sus propiedades simétricas que minimizan el tiempo computacional al realizar una cantidad mucho menor de operaciones.   
+
+En la función programada en R. Se simula el valor de una uniforme, dependiendo del valor que ésta tome se eligirá una propuesta de las cuatro recién mencionadas. Una vez elegida la propuesta el código programado contempla la evaluacion de la función $\rho$ que nos dirá si debemos aceptar el valor propuesto. 
+En caso de que no se acepte, con apoyo de la función while se logra que se itere las veces que sean necesaria hasta que haya un nuevo punto.
+
+la función en R, es la siguiente: 
+
+```{r}
+
+ker<-function(pin,alfa, b){
+  reg<-rep()
+  while (length(reg)<1) {
+    u1<-runif(1)
+    if(u1<0.01){     #kernel cero 
+      reg<-pin
+    }else if(u1<0.3){  #gibs, aceptamos con proba 1
+      reg<-c(pin[1],rgamma(1,10+alfa, sum(mm^(alfa))+b))
+    }else if(u1<.75){     ##normal vibariada 
+      m1<-matrix(c(1,0,0,1),2,2)
+      prop<-pin+rmvnorm(c(0,0),m1)
+      ro1<-min(1,f(prop[1],prop[2])/f(pin[1],pin[2]))
+      u2<-runif(1)
+      if(u2<ro1 && !is.na(ro1)){    ## evitar casos en que  se indetermina 
+        reg<-prop
+      } 
+    } else{ ##OTRO GIBBS, SE ACEPTA CON PROBA 1 ¿?
+      reg<-c(rgamma(1,alfa*(1+log(b))-log(gamma(alfa))+1,sum(mm^(alfa))), pin[2])
+      
+      
+    } 
+    
+  }
+  return(reg)
+}
+```
+
+
+
+Después se crea la función simula, que se encarga de anexar los puntos aceptados a los resultados finales, así como de iterar las veces necesarias para tener las n simulaciones deseadas, 
+
+
+```{r}
+simula<-function(n, pin){ ### genera n 
+  
+  simulados<-matrix(ncol=2)   #aqui se guardan las simulaciones
+  simulados<-rbind(simulados,pin)   ##anexamos el punto inicial pin
+  prop<-rep()
+  
+  while(nrow(simulados)<(n+1)){    ##hasta que se tenga el num. de simulaciones deseadas se detiene el ciclo
+    prop<-ker(pin,3,3)  #el punto propuesto, la misma funcion ker evalua el ro, por tanto lo que se devuelva ya es aceptado 
+    simulados<-rbind(simulados,prop)   #anexamos el punto 
+    pin<-prop   # generamos la nueva modificacion 
+  }
+  return(simulados)
+}
+
+```
+
+
+
+Nota: la semilla utilizada es el punto (3,3).
+
+
+Generemos tres mil simulaciones:
+
+```{r}
+y<-simula(3000,c(3,3))
+```
+
+
+
+observamos las gráfica de la simulación : 
+
+```{r, echo=FALSE, fig.height=3, fig.width=5, message=FALSE}
+
+plot(y[-1,][,1],y[-1,][,2], type = "l", main="simulaciones", xlab="lambda", ylab="alfa")
+
+```
+
+
+de esta gráfica se observa que la serie tarda en estabilizarse, aproximadamente las primeras en las primeras 500 no se observa convergencia. Por tanto se usara un lag de 500 
+ 
+ 
+ también resulta interesante observar las densidades de  las muestras marginales.
+
+
+
+
+```{r, echo=FALSE, fig.height=3, fig.width=3, message=FALSE}
+
+
+
+plot(density(y[-1,][,1]), main = "marginal alfa")  #densidad de alfa
+
+
+plot(density(y[-1,][,2]), main = "marginal lambda")   #densidad de lambda
+
+
+
+```
+
+
+
+** inciso 3 **  
+
+La cadena sí es fuertemente aperiódica gracias al kernel cero. Pues se tiene una probailidad positiva de regresar al mismo lugar en un solo paso. 
+
+Asimismo, sabemos que una cadena es ergódica cuando tiene periodo uno  y recurrente. En este caso la cadena sí es ergódica, pues aunque los kerneles por separado no lo son, la mezcla logra que se pueda regresar a cualquier punto con probabilidad positiva. 
+
+
+** inciso 4 **
+
+El burnin que se tomó fue de acuerdo al comportamiento gráfico que se muestra en la gráfica (lambda, beta) pues en esta se observa que después de un numero  que es aproximadamente 500 las simulaciones parecen converger  al centro de la gráfica. 
+
+
+para observar el porcentaje de numeros aceptados, haremos una modificacion pequeña a la función "ker"
+
+```{r, echo= FALSE}
+
+ker1<-function(pin,alfa, b){
+  reg<-rep()
+  cont<-0
+  while (length(reg)<1) {
+    cont<-cont+1
+    u1<-runif(1)
+    if(u1<0.01){     #kernel cero 
+      reg<-pin
+    }else if(u1<0.3){  #gibs, aceptamos con proba 1
+      reg<-c(pin[1],rgamma(1,10+alfa, sum(mm^(alfa))+b))
+    }else if(u1<.75){     ##normal vibariada 
+      m1<-matrix(c(1,0,0,1),2,2)
+      prop<-pin+rmvnorm(c(0,0),m1)
+      ro1<-min(1,f(prop[1],prop[2])/f(pin[1],pin[2]))
+      u2<-runif(1)
+      if(u2<ro1 && !is.na(ro1)){    ## evitar casos en que  se indetermina 
+        reg<-prop
+      } 
+    } else{ ##OTRO GIBBS, SE ACEPTA CON PROBA 1 ¿?
+      reg<-c(rgamma(1,alfa*(1+log(b))-log(gamma(alfa))+1,sum(mm^(alfa))), pin[2])
+      
+      
+    } 
+    
+  }
+  return(cont)
+}
+
+
+```
+```{r, warning=FALSE, message=FALSE}
+
+  t<-rep()
+for(i in 1:2500){
+  t[i]<-(ker1(c(3,3),3,3))  #con la modificacion, devuelve las veces que se tuvo que iterar
+}
+  
+  2500/sum(t) #eficiencia
+
+```
+
+
+
+
+
+###curvas de nivel 
+
+```{r}
+a<-cbind(y[-1,][,1], y[-1,][,2])
+
+ggplot(data=NULL, aes(x=a[,1],y=a[,2]) ) +
+  stat_density_2d(aes(fill = ..level..), geom = "polygon", col="gold") + geom_point(aes(x=a[,1],y=a[,2]), col="red")
+
+
+```
+
+
+
+Para concluir, se observa que usar el kernel mixto resulta útil para lograr tener una cadena ergódica y fuertemente aperiódica. Asimismo, se encuentra que la eficiencia del algoritmo es alta, es decir, en promedio no se rechazan tantos puntos 
+

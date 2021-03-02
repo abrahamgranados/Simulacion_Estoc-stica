@@ -1,0 +1,914 @@
+---
+title: "Tarea examen"
+output: pdf_document
+---
+#Ejercico 1
+
+
+**Solución analítica**
+
+Distribución multinomial
+
+\[
+y=(y_{1},y_{2},y_{3},y_{4})
+\]
+
+con la siguiente distribución:
+
+\[
+(\frac{1}{2}+\frac{1}{4}\psi,\frac{1}{4}(1-\psi),\frac{1}{4}(1-\psi),\frac{1}{4}\psi)
+\]
+
+
+
+Calculemos la funcion de verosimilitud y logverosimilitud:
+
+
+\[
+L(\theta)=\frac{(y_{1}+y_{2}+y_{3}+y_{4})!}{y_{1}!y_{2}!y_{3}!y_{4}!}\left(\frac{1}{2}+\frac{1}{4}\psi\right)^{y_{1}}\left(\frac{1}{4}(1-\psi)\right)^{y_{2}}\left(\frac{1}{4}(1-\psi)\right)^{y_{3}}\left(\frac{1}{4}\psi\right)^{y_{4}}
+\]
+
+aplicando el logaritmo, 
+
+\[
+log\left(L(\theta)\right)=y_{1}log\left(2+\psi\right)+\left(y_{2}+y_{3}\right)log\left(1-\psi\right)+y_{4}log\left(\psi\right)
+\]
+
+para encontrar el estimador analítico tenemos que obtener la primera derivada e igualar a 0
+
+
+\[
+S(y,\psi)=\frac{\partial log\left(L(\theta)\right)}{\partial\psi}=\left(\frac{1}{2+\psi}\right)y_{1}-\left(\frac{1}{1-\psi}\right)\left(y_{2}+y_{3}\right)+y_{4}\left(\frac{1}{\psi}\right)
+\]
+
+Sustituyendo los valores dados de la muestra (1997,906,904,32) en la ecuación no dara que: 
+
+
+\[
+S(y,\psi)=\left(\frac{1997}{2+\psi}\right)-\left(\frac{1810}{1-\psi}\right)+\left(\frac{32}{\psi}\right)
+\]
+
+igualamos a 0 y despejamos a $\psi$, nos quedamos con la raíz positiva 
+
+\[
+S(y,\psi)=0\Rightarrow-3893\psi^{2}-1655\psi+64=0
+\]
+
+\[
+\Rightarrow\psi_{1}=0.0356,\psi_{2}=-0.4607
+\]
+
+
+
+
+
+**Apliquemos Newthon raphson** 
+
+El algoritmo de Newton necesita de la segunda derivada de la función de la que queremos encontrar la raíz, es:
+
+\[
+S'(y,\psi)=-\frac{32}{x^{2}}-\frac{1810}{(1-x)^{2}}-\frac{1997}{(2+x)^{2}}
+\]
+
+
+Programamos las primeras dos derivadas de la función:
+
+
+```{r}
+fun<-function(x){(1997/(2+x))-(1810)/(1-x)+(32/x)}
+f=expression((1997/(2+x))-(1810)/(1-x)+(32/x))
+dfun<-function(x){eval(D(f,"x"))}  #la derivada
+#dfun<-function(x){-32/x^2-1810/(1-x)^2-1997/(2+x)^2}
+
+
+```
+
+
+Se construyó una función que realiza el algritmo de Newton, solicita tres parámetros el punto inicial x0, una tolerancia que le permitiremos de error al algoritmo y un número de iteraciones máximo. 
+
+
+```{r}
+
+ newton<-function(x0,tol,itera){
+   contador<-1
+   while(contador<itera){
+     x<-(x0-(fun(x0)/dfun(x0)))
+     if(abs(x-x0)>tol){
+       x0<-x
+       contador<-contador+1
+     }else{
+       contador<-itera}
+   }
+    return (x)
+ }
+
+
+round(newton(0.5,0.00001,10000),5)
+
+```
+
+
+como vemos el algoritmo converge a la raiz negativa, observemos la gráfica de la primer derivada 
+
+```{r, fig.height=4, fig.width=4.5, echo=FALSE}
+puntos<-matrix(c(-0.46681,fun(-0.46681)),1,2)
+curve(fun, xlim = c(-5,5), main="convergencia de Newton")
+abline(0,0)
+points(puntos, col="red", pch=10,lwd=3)
+```
+
+debido al comportamiento de la función el algoritmo de newton Rahpson converge a la raíz negativa. 
+
+Note que observando la gráfica podemos seleccionar un punto inicial no arbitrario cerca de la solución real para que sí tienda a esta, cabe mencionar que en pocas iteraciones lo hace
+Notemos como con 10 iteraciones y con el punto inicial 0.4, da un buen resultado
+
+
+```{r, echo=FALSE}
+
+ newton1<-function(x0,tol,itera){
+   contador<-1
+   while(contador<itera){
+     x<-(x0-(fun(x0)/dfun(x0)))
+     if(abs(x-x0)>tol){
+       x0<-x
+       contador<-contador+1
+     }else{
+       contador<-itera}
+   }
+    return (x)
+ }
+
+
+round(newton(0.4,0.00001,10),5)
+```
+
+
+
+#Algoritmo EM
+
+Tenemos el vector de información: 
+```{r}
+y<-c(1997,906,904,32)
+```
+
+
+El primer paso del algoritmo EM es proponer un punto inicial. En este caso se eligió 1. 
+
+```{r, echo=FALSE}
+pin<-.1 #propuesta
+```
+
+Posteriormente encontramos los valores de 
+
+\[
+\mathbb{E}(Y_{11}\mid Y_{1})
+\]
+
+\[
+\mathbb{E}(Y_{12}\mid Y_{1})
+\]
+
+```{r}
+E1<-(1/2)*y[1]/(1/2+1/4*pin)
+E2<-y[1]-E1
+```
+
+
+Al encontrar la derivada e igualarla a cero se obtiene: 
+
+\[
+\frac{\partial Q(\psi,\psi^{0})}{\partial\psi}=0\Rightarrow\psi^{1}=\frac{y_{12}^{0}+y_{4}}{y_{12}^{0}+y_{2}+y_{3}+y_{4}}=\frac{y_{12}^{0}+y_{4}}{n-y_{11}^{0}}
+\]
+
+guardamos el resultado:
+
+```{r}
+n<-sum(y)
+est<-(E2+y[4])/(n-E1)
+```
+
+
+```{r, echo=FALSE}
+#Guardamos los resultados de los estimadores
+resultados<-rep()
+resultados[1]<-pin
+resultados[2]<-est
+
+```
+
+
+Creamos el número de iteraciones,  que están dada por
+
+\[
+\psi^{k}=\frac{y_{12}^{(k-1)}+y_{4}}{y_{12}^{(k-1)}+y_{2}+y_{3}+y_{4}}
+\]
+
+Se generarán cien iteraciones
+
+
+```{r}
+
+
+for(i in 1:100){
+
+  E1<-c(E1,(1/2)*y[1]/(1/2+(1/4*resultados[i])))
+  E2<-c(E2,y[1]-(1/2)*y[1]/(1/2+(1/4*resultados[i])))
+ resultados<-c(resultados,(E2[i]+y[4])/(E2[i]+sum(y[2:4])))
+}
+
+
+```
+
+
+Los últimos diez resultados finales que nos devuelve el algoritmo EM son 
+
+```{r}
+resultados[90:100]
+```
+
+
+observemos grráficamente como fue cambiando en cada iteración 
+
+```{r, echo=FALSE}
+plot(seq(1:100), resultados[1:100], main="Algoritmo EM", xlab="iteraciones", ylab ="estimación", ylim=c(-0.04,.12), col="cyan4", pch=19,lwd=1.3)
+abline(0.03571230224,0, lwd=1.5, col="red")
+
+```
+
+
+
+En la gráfica la linea roja representa la solución real.
+
+Conclusión: 
+
+Como se observa el numero de iteraciones necesarias para que EM logre converger son aproximadamente 20. 
+De los algoritmos programados (faltó el inciso 3), resultó por mucho  mejor EM.
+
+Se debe en parte a que la función era un tanto "caótica" se anulaba en muchos puntos y en otras se iba a infinto, por eso el algoritmo de Newton dependía mucho del punto inicial que se seleccionaba. Sin embargo, se probó EM con distintos puntos y en todos logro llegar al valor deseado y con muy pocas iteraciones. 
+
+
+#Ejercicio 2
+#Bootstrap 
+ **Comparar la varianza teórica** 
+ 
+ Sabemos que la varianza teórica del estimadoor está dada por: 
+ 
+ \[
+var(\overline{X})\sim N(0,\frac{1}{n})
+\]
+
+En este caso al tener n=100, la varianza sera de 0.01.
+
+
+**Utilizando Montecarlo**
+
+ El primer punto es generar la muestra. 
+ 
+```{r, echo=FALSE}
+
+set.seed(4)
+muestra<-rnorm(100)
+
+
+```
+
+Después tomamos muestras aleatorias de esta muestra, el parametro B (número de submuestras elegido será de 5000):
+
+```{r, echo=FALSE}
+dat<-matrix(0,ncol=5000,nrow=70)
+
+for( i in 1:5000){
+  muetbo<-sample(muestra,70, replace = TRUE)
+  dat[,i]<-muetbo
+}
+
+```
+
+Les aplicamos el estadístico de interés en este caso la media: 
+
+
+```{r, echo=FALSE, fig.height=4, fig.width=5, echo=FALSE}
+res<-apply(dat,2,mean)
+hist(res, col="darkolivegreen1", main = "histograma de la muestra",xlab = "x")
+```
+
+estimación de la varianza 
+ 
+```{r}
+var1<-(1/5000*sum(res^2)-((1/5000)*sum(res))^2)
+var1
+
+
+
+```
+
+**Bootstrap con la distribución empirica**
+
+```{r, fig.height=4, fig.width=4.5, echo=FALSE}
+plot.ecdf ( x=muestra , verticals = TRUE , do.p = FALSE  , lwd =2 ,main=" ",
+ylab =" Empirica", col="red")
+
+```
+
+
+
+
+**Inciso 2**
+
+
+Estimador de la Varianza Bootstrap paramétrico. 
+
+Buscamos ahora el estimador máximo verosimil de la media,  el cual podemos encontrar calculando el promedio de la muestra original. 
+
+
+```{r}
+EMV<-mean(muestra)
+```
+
+
+Con este parámetro vamos a simular 5000 muestras Bootstrap  con longitud de 70 datos: 
+
+```{r, echo=FALSE}
+sim<-matrix(0,ncol=5000,nrow=70)
+for(i in 1:5000){
+  sim[,i]<-rnorm(70, EMV,1)
+}
+```
+
+Cada columna de la matriz que se simuló representa una muestra Bootstrap. Le aplicaremos la funcion del estimador
+
+
+```{r}
+res1<-apply(sim,2,mean)
+```
+
+Graficamente obtenemos que: 
+
+```{r, echo=FALSE, fig.height=4, fig.width=5, echo=FALSE}
+res<-apply(dat,2,mean)
+hist(res1, col="cyan4", main = "histograma de la muestra",xlab = "x")
+```
+
+
+Mientras que la estimación de la varianza está dado por: 
+
+```{r}
+vbp<-(1/5000*sum(res1^2)-((1/5000)*sum(res1))^2)
+
+vbp
+
+
+```
+
+
+**Comparación de las Varianzas**
+
+```{r}
+#0.01 varianza original 
+var1   #varianza Montecarlo
+vbp    # Varianza paramétrico con el EMV
+
+```
+
+
+
+
+#Ejercicio 3 
+
+##Inciso A, 
+
+**Probabilidad de que al tiempo 15 haya más de 3 personas**
+
+
+Para lograr calcular esta probabilidad con el método de Montecarlo se comenzó programando el proceso Poisson, en el código se nombró como "ppoi", los parámetros que reciben son el valor lambda y el valor t. 
+ 
+```{r, echo=FALSE}
+
+ppoi<-function(lam, t){
+  su<-0
+  saltos<-0
+  while(su<t){
+    su=su+rexp(1,lam)
+    saltos<-c(saltos, su)
+  }
+  n <- length(saltos)
+  conteo <- 1:n 
+  #quitamos el ultimo dato, porque sobrepasa el tiempo t
+  return(matrix(c(saltos[1:(length(saltos)-1)],conteo[1:(length(saltos)-1)]),ncol=2))
+}
+
+```
+ 
+ 
+Es necesario notar que las siguientes lineas de código corresponden a los procesos de llegada de los alumnos a la estación, el de llegada de camiones y coches respectivamente: 
+
+```{r}
+a<-ppoi(1, 15) #Tiempo de arrivo de los compañeros al tiempo 15.
+b<-ppoi(1/20,15) #Tiempo de arrivo de los camiones
+c<-ppoi(1/13,15) #Tiempo de arrivo de los carros
+
+```
+
+
+Después se programó una función "totaldepers" que recibe de parametros, los vectores a, b, y c correspondientes a las simulaciones obtenidas por "ppoi". 
+
+Se anexa el código porque en este fue explicado con detalle:
+```{r}
+
+totaldepers<-function(a,b,c){   #recibe las simulaciones
+  ared<-a[-1,][,1]       #omitimos la primer fila que siempre es 0
+  #registro de los que esperan
+  if(nrow(b)>1){
+  noencamion<-which(ared>max(b[,1])) #Dado que los camiones se llevan a todos los que 
+#se encuentren en la parada, basta ver cuantas personas quedan  
+#después del útimo camión. Apartir de aqui, ya se revisaran los coches.
+  if(is.na(noencamion[1])){noencamion<-0}  #verificamos que si haya pasado un camion 
+  ared<-ared[(noencamion)[1]:noencamion[length(noencamion)]]
+  #si sí pasó un camión eliminamos todos los registros de los que 
+  #se fueron
+  }
+   if(length(which(c[,1]>max(b[,1])))>0 ){  #verificamos si pasa un coche después
+#del ultimo camion
+     cred<-c[which(c[,1]>max(b[,1]))[1]:length(c[,1]),1] #tiempo de arrivo de los 
+#coches que pasan después que el último camión
+     
+      for(i in 1:length(cred)){
+     estacion<-length(which(ared<cred[i]))    #los que seguian en la estacion, 
+#cuando llego el coche
+     sevan<-min(4,estacion)  #los que se suben al coche
+     ared<-ared[min(sevan+1,length(ared)):length(ared)]  #ared guarda el 
+#registro de las personas que están esperando en la estación.
+#por eso se le quitarán las filas correspondientes a las personas que 
+#se fueron en el coche de cada iteración. Quitamos las cuatro que
+#ya llevan más tiempo esperando,o si hay menos de cuatro a todas
+
+     }
+  }
+  return(length(ared)) #regresa el número de personas que siguen
+  #esperando 
+}
+```
+
+ 
+ 
+ Cada que corremos la función anterior nos devuelve el número de personas que al tiempo 15 seguian esperando transporte. 
+ Haremos 15 mil simulaciones, 
+ 
+ 
+```{r}
+
+qued<-rep() #guarda el numero de personas que altiempo 15 siguen esperando
+for (i in 1:15000){  #numero de simulaciones
+   a<-ppoi(1, 15) #simulación de compañeros
+  b<-ppoi(1/20,15) #simulación de autobuses
+  c<-ppoi(1/13,15) #simulación de autos 
+  qued[i]<-totaldepers(a,b,c)  #guardamos el resultado 
+  
+  
+}
+
+
+```
+
+Calculemos la probabilidad de que haya más de tres personas esperando
+
+
+```{r}
+length(which(qued>3))/15000
+
+```
+
+veamos como converge el problema graficamente
+
+```{r, fig.height=4, fig.width=6, echo=FALSE}
+unos<-rep()
+
+unos[which(qued>3)]<-1  #llenamos de unos donde x>3
+unos[is.na(unos)]<-0     # cero donde no 
+
+pp<-rep()
+for(i in 1:15000){
+  pp[i]<-mean(unos[1:i])
+}
+
+plot(seq(1:15000),pp, main="Convergencia del Proceso", xlab="simulaciones", ylab="promedios", col="blue", type="l")
+```
+
+
+como se observa gráficamente converge a la probabilidad obtenida arriba. 
+
+
+##Inciso B
+ 
+
+**Probabilidad de que al tiempo 100 viajen más personas en auto que en camión **
+
+
+
+Igual que en el inciso anterior se programó una función que nos dice al tiempo 100 cuantos se fueron en cada iteración y en qué tipo de transporte: 
+
+```{r}
+sefue<-function(a,b, c){
+sefueencamion<-0   #conteo de los que se van en camión
+sefueencarro<-0     #conteo de los que se van en carro
+if(length(br)!=0 & length(cr)!=0){ #quita la primer fila con el dato cero
+#en caso de que sí haya pasado al menos un camión y coche
+#al tiempo cien
+br<-br[-1]
+cr<-cr[-1]
+}
+while(sum(br)!=0 & sum(cr)!=0){ #si pasaron ambos transportes
+#entra al ciclo
+  ba<-min(br)   #primer camion en llegar
+  ca<-min(cr)  #primer coche en llegar
+
+  
+  if(ba<ca){ #si el camión llega primero que el coche
+    sefueencamion<-sefueencamion+length(which(ar<ba))
+    #contamos los que se van y los sumamos,después 
+    #borramos los registros de los que ya sefueron en camión reducimos la información
+    ar<-ar[(length(which(ar<ba))+1):length(ar)]    #quitamos los que se van               #los que quedan    
+    br<-br[-1]  #quitamos la información del primer arrivo 
+    #del camion 
+    if(length(br)==0){br<-0}  #si ya no hay camiones le
+    #asignamos 0, para evitar el tipo de dato integer(0)
+  }else{
+    sefueencarro<-sefueencarro+min(length(which(ar<ca)),4)  # a lo mas se lleva 4
+    ar<-ar[(length(which(ar<ca))+1):length(ar)]#quitamos los que se van                
+    cr<-cr[-1]  #quitamos la información del coche que paso, para en 
+#la siguiente iteración volver a buscar el siguiente mínimo
+    if(length(cr)==0){cr<-0}
+  }  #cuando ya no hay coches, le asiganamos 0
+}  #termina el ciclo, cuando ya hay solo camiones o coches
+if(sum(br)==0){br<-0}
+if(sum(cr)==0){cr<-0}
+ if(sum(cr)==0 & br[1]>0){
+   sefueencamion<-sefueencamion+length(which(ar<max(br)))  #si ya no hay coches
+ }else {  ##si no hay camiones
+   ss<-length(cr)
+   for(i in 1:ss){
+     sefueencarro<-sefueencarro+min(length(which(ar<cr[1])),4)
+     ar<-ar[min(5,(length(which(ar<cr[i]))+1)):length(ar)]#quitamos los que se van               
+     #los que quedan    
+     cr<-cr[-1]
+   }
+   
+ }
+ return(c(sefueencamion,sefueencarro))  
+}
+
+
+```
+
+
+
+
+
+
+
+Correremos la función 5 mil veces para estimar la probabilidad, Los primeros veinte resultados son:
+
+```{r, echo=FALSE}
+
+
+resultados<-matrix(ncol = 2) #guarda los resultados
+for(i in 1:5000){
+a<-ppoi(1, 100) #simulacion de arrivo de compañeros
+b<-ppoi(1/20,100) #simulacion de arrivo de camiones
+c<-ppoi(1/13,100) #simulacion de arrivo de coches
+
+ar<-a[,1][-1] # nos dice el  tiempo de arrivo de persona, quitamos la primer fila, del cero 
+br<-b[,1]  #obtenemos los tiempos de arrivo
+cr<-c[,1]  #obtenemos los tiempos de arrivo
+
+resultados<-rbind(resultados,sefue(a,b,c) )  #se utiliza la función para simular
+}  
+
+
+resultados<-resultados[-1,]
+
+
+#los primeros 20 resultados son 
+resultados[1:20,]
+
+
+```
+
+
+La primer columna equivale a los que viajan en camión, mientras la segunda los que viajan en coche
+
+La probabilidad buscada es: 
+
+```{r}
+
+##los eventos en que viajan mas en autobus son 
+
+length(which((resultados[,1]-resultados[,2])>0))/5000
+```
+
+
+observemos graficamente la convergencia de esta nueva estimacion 
+
+
+```{r, fig.height=4, fig.width=6, echo=FALSE}
+unos<-rep()
+
+unos[which((resultados[,1]-resultados[,2])>0)]<-1  #llenamos de unos donde x>3
+unos[is.na(unos)]<-0     # cero donde no 
+
+pp<-rep()
+for(i in 1:5000){
+  pp[i]<-mean(unos[1:i])
+}
+
+plot(seq(1:5000),pp, main="Convergencia del Proceso", xlab="simulaciones", ylab="promedios", col="blue", type="l")
+```
+
+
+Como se observa el proceso parece converger aproximadamente en la iteración 2000, a la probabilidad mencionada arriba
+
+
+
+#Ejercicio 4 
+
+##Recocido simulado, función de Himmelblau
+
+\[
+f(x,y)=(x^{2}+y-11)^{2}+(x+y^{2}-7)^{2}
+\]
+
+Para comenzar a programr el algoritmo, es necesario programar primero la función:
+
+
+```{r}
+him<-function(x,y){(x^2+y-11)^2+(x+y^2-7)^2}
+```
+
+\vspace{6mm} 
+
+Nota: al correr el código debajo de este párrafo automáticamente se abrirá una pestaña donde se observa una gráfica interactiva dela fucnión de Himmelblau, que nos dará la idea del dominio y de donde encontrar los minimos 
+
+
+
+ 
+```{r, warning=FALSE}
+library("rgl")
+
+plot3d(him, col=colorRampPalette(c("blue", "red", "white")),xlim=c(-20,20), ylim=c(-20,20),
+       contour=TRUE)
+
+
+```
+    
+    
+    
+El algoritmo de recocido simulado demanda un valor, o mejor dicho una sucesión Tn no creciente. El valor inicial de Tn se eligió teniendo en cuenta las sugerencias del paper "Introducción a la optimización heurística en ingeniería" del doctor Yepes Piqueras; esto es se programó el algoritmo de recocido simulado y se iteró 200 veces, cambiando el valor de Tn  y se seleccionó el que tuvo una tasa de aceptación de entre el 20 y 40 por ciento.
+
+Como era de esperarse para valores grandes de Tn, se obtenian mayores tasas de aceptación, y para valores pequeños como 20 o 30 apenas se aceptaban uno o dos. 
+
+Después de muchas pruebas se seleccionó como parametro inicial de la sucesión el valor 1500 y decrece en cada iteración en un 3%
+
+Asimismo, dependiendo del valor inicial las simulaciones convergen a un punto.  Observemos las curvas de nivel de la función 
+
+```{r, echo=FALSE}
+x<-y<-seq(-7,7,length=21)
+z<-outer(x,y,him)
+contour(x,y,z, levels=c(seq(0,10, length.out = 5),seq(0,500,length.out = 15)), col=c("black", "blue"), main="curvas de nivel")
+
+
+```
+
+
+
+
+**punto incial (1,-4)**
+
+Al correr el algoritmo, para el punto inical (1,-4) obtenemos lo siguiente: 
+
+```{r, echo=FALSE}
+set.seed(8)
+pin<-c(1,-4)
+recorrido<-matrix(pin,1,2)
+tn<-1500
+cont<-0
+for(i in 1:1500){
+  prop<-recorrido[nrow(recorrido),]+runif(2,-0.3,0.3)  #dist. simualada
+  ro<-min(1,exp(-(him(pin[1],pin[2])+him(prop[1],prop[2]))/tn))
+  r<-runif(1)
+  if(r<ro){
+    pin<-prop
+    cont<-cont+1
+   
+  }
+  tn<-tn*.99
+  recorrido<-rbind(recorrido,pin)
+}  
+
+contour(x,y,z, levels=c(seq(0,10, length.out = 5),seq(0,500,length.out = 15)), col=c("black", "blue"))
+points(recorrido,type="l", lwd=3, main="recorrido de las simulaciones")
+```
+
+
+
+Como se observa la cadena avanza al los valores minimos de la función. Los últimos puntos aceptados  y queda un número 
+considerable de iteraciones en el mínimo. 
+
+
+**Punto inicial (0,0)**
+
+Observemos la trayectoria que se obtiene al tomar el punto incial (0,0)
+
+```{r, echo=FALSE}
+set.seed(3)
+pin<-c(-4,0)
+recorr<-matrix(pin,1,2)
+tn<-1500
+cont<-0
+for(i in 1:2000){
+  prop<-recorr[nrow(recorr),]+runif(2,-0.3,0.3)  #dist. simualada
+  ro<-min(1,exp(-(him(pin[1],pin[2])+him(prop[1],prop[2]))/tn))
+  r<-runif(1)
+  if(r<ro){
+    pin<-prop
+    cont<-cont+1
+   
+  }
+  tn<-tn*.99
+  recorr<-rbind(recorr,pin)
+}  
+
+contour(x,y,z, levels=c(seq(0,10, length.out = 5),seq(0,500,length.out = 15)), col=c("black", "blue"))
+points(recorr,type="l", lwd=3, main="recorrido de las simulaciones")
+```
+
+
+
+Como vemos ahora se detuvo en el mínimo más cercano, resulta interesante notar que el algoritmo puede quedarse mucho tiempo en algún mínimo y después salir de ese minimo para ir a econtrar otro 
+
+
+** punto (-5,4) **
+
+```{r, echo=FALSE}
+set.seed(0)
+pin<-c(-5,4)
+recorrido<-matrix(pin,1,2)
+tn<-1500
+cont<-0
+for(i in 1:1500){
+  prop<-recorrido[nrow(recorrido),]+runif(2,-0.3,0.3)  #dist. simualada
+  ro<-min(1,exp(-(him(pin[1],pin[2])+him(prop[1],prop[2]))/tn))
+  r<-runif(1)
+  if(r<ro){
+    pin<-prop
+    cont<-cont+1
+   
+  }
+  tn<-tn*.99
+  recorrido<-rbind(recorrido,pin)
+}  
+
+contour(x,y,z, levels=c(seq(0,10, length.out = 5),seq(0,500,length.out = 15)), col=c("black", "blue"))
+points(recorrido,type="l", lwd=3, main="recorrido de las simulaciones")
+```
+
+
+
+
+#Ejercicio 5 Goldstein Price
+
+Análogo al ejercico anterior, se programó primero la función y se observó la gráfica de la función, no se adjunta al PDF por ser interactiva, pero se generará al correr el siguiente chunk:
+
+
+```{r, echo=FALSE}
+f<-function(x,y){(1+(x+y+1)^2*(19−14*x+3*x^2−14*y+6*x*y+3*y^2))*(30+(2*x-3*y)^2*(18-32*x+12*x^2+48*y-36*x*y+27*y^2))}
+```
+
+
+```{r, warning=FALSE}
+library("rgl")
+
+plot3d(f, col=colorRampPalette(c("blue", "red", "white")),xlim=c(-2,2), ylim=c(-2,2),
+       contour=TRUE)
+```
+
+
+
+observemos las curvas de nivel, 
+
+```{r, echo=FALSE,fig.height=3, fig.width=5}
+x<-y<-seq(-3,3,length=21)
+z<-outer(x,y,f)
+contour(x,y,z, levels=c(seq(0,9200,length.out = 15)), col=c("black", "blue"), main="curvas de nivel")
+
+
+```
+
+
+Para la selección del valor inicial de la sucesión se tomó un procedimiento igual al anterior. Al elegir Tn=7000, se aceptaban muy pocos puntos, por tanto se fue aumentando el número inicial de la sucesion y  se encontró que con 1600 se aceptaban en promedio el 40 por ciento por tanto ese será nuestro valor seleccionado, decrecerá con la misma tasa que el ejercicio anterior 
+
+
+El minimo analítico global de esta función se encuentra en el punto (0,-1), debido a que la función tiene muchos mínimos locales, depende del punto inicial y del número de iteraciones que se encuentre el punto que minimiza la función,  porque el recorrido que hace suele terminar en uno que no es el mínimo global. 
+
+por ejemplo observemos lo que sucede al tomar un punto lejano del mínimo global, por ejemplo(1.5,1.5)
+
+
+```{r, echo=FALSE}
+set.seed(1)
+pin<-c(1.5,1.5)
+recorrido<-matrix(pin,1,2)
+tn<-7000
+cont<-0
+for(i in 1:1000){
+  prop<-recorrido[nrow(recorrido),]+runif(2,-0.5,0.5) #variable simetrica
+  ro<-min(1,exp(-(f(pin[1],pin[2])+f(prop[1],prop[2]))/tn))
+  r<-runif(1)
+  if(r<ro){
+    pin<-prop
+    cont<-cont+1
+    
+  }
+  tn<-tn*.975
+  recorrido<-rbind(recorrido,pin)
+}
+
+
+
+```
+
+
+
+
+```{r, echo=FALSE, fig.height=4, fig.width=6}
+contour(x,y,z, levels=c(seq(0,1050,length.out = 15)), col=c("black", "blue"), main="recorrido de las simulaciones")
+points(recorrido,type="l", lwd=3 )
+```
+
+
+
+Ahora observemos el recorrido al tomar un punto inicial en (2,0)
+
+```{r, echo=FALSE}
+set.seed(2)
+pin<-c(2,0)
+recorrido<-matrix(pin,1,2)
+tn<-7000
+cont<-0
+for(i in 1:1200){
+  prop<-recorrido[nrow(recorrido),]+runif(2,-0.5,0.5) #variable simetrica
+  ro<-min(1,exp(-(f(pin[1],pin[2])+f(prop[1],prop[2]))/tn))
+  r<-runif(1)
+  if(r<ro){
+    pin<-prop
+    cont<-cont+1
+    
+  }
+  tn<-tn*.975
+  recorrido<-rbind(recorrido,pin)
+}
+
+
+```
+
+```{r, echo=FALSE, fig.height=4, fig.width=6}
+contour(x,y,z, levels=c(seq(0,1050,length.out = 15)), col=c("black", "blue"), main="recorrido de las simulaciones")
+points(recorrido,type="l", lwd=3 )
+```
+
+
+como se observa a pesar de un número alto de simulaciones el recorrido no logra llegar al punto deseado. Al tomar un punto más cercano (1,0), obtenemos 
+
+
+```{r, echo=FALSE}
+set.seed(5)
+pin<-c(1,0)
+recorrido<-matrix(pin,1,2)
+tn<-3200
+cont<-0
+for(i in 1:1200){
+  prop<-recorrido[nrow(recorrido),]+runif(2,-0.5,0.5) #variable simetrica
+  ro<-min(1,exp(-(f(pin[1],pin[2])+f(prop[1],prop[2]))/tn))
+  r<-runif(1)
+  if(r<ro){
+    pin<-prop
+    cont<-cont+1
+    
+  }
+  tn<-tn*.9
+  recorrido<-rbind(recorrido,pin)
+}
+
+
+```
+
+```{r, echo=FALSE, fig.height=4, fig.width=6}
+contour(x,y,z, levels=c(seq(0,1050,length.out = 15)), col=c("black", "blue"), main="recorrido de las simulaciones")
+points(recorrido,type="l", lwd=3 )
+matt<-matrix(c(0,-1),1,2)
+points(matt, pch=4, lwd=4.5, col="firebrick1")
+
+```
+
+
+como observamos, ahora sí el recorrido va hacía el punto minimo, marcado con una cruz roja en la imagen. El algoritmo necesitó de varias iteraciones para llegar al punto minimo 
+
+

@@ -1,0 +1,157 @@
+---
+title: "Tarea 8"
+author:
+- Granados Carmona Saúl Abraham
+output:
+  pdf_document: default
+  html_document: default
+---
+
+#Ejercio 1
+
+**Encuentre la densidad posterior** 
+$f(\overrightarrow{\lambda},\beta\mid\overrightarrow{t},\overrightarrow{p})$
+
+
+Analíticamente la función está dada por: 
+
+\[
+f(\overrightarrow{\lambda},\beta\mid\overrightarrow{t},\overrightarrow{p})\alpha\Pi_{I=1}^{\beta}(e^{-\lambda_{i}t_{i}}\frac{(\lambda_{i}t_{i})^{p_{i}}}{p_{i}})\frac{\beta^{\alpha}}{\varGamma(\alpha)}\lambda_{i}^{\alpha-1}e^{-\beta\lambda_{i}}\frac{\delta^{\gamma}}{\varGamma(\gamma)}\beta^{\gamma-1}e^{-\delta\beta}
+\]
+
+**Implemente y analice MCMC, con kerneles híbridos**
+
+Primero es interesante notar que sí hay kernels Gibbs, que se enuncian a continuación: 
+
+
+la función condicionada  de $\lambda$, es 
+
+\[
+f(\lambda_{i}\mid\beta_{i}\overrightarrow{p},\lambda_{2},..,\lambda_{\beta})\alpha e^{-\lambda_{i}t_{i}}\lambda_{i}^{p_{i}}\lambda_{i}^{\alpha-1}e^{-\beta\lambda_{i}}
+\]
+
+\[
+\alpha e^{-\lambda_{i}(t_{i}+\beta)}\lambda_{i}^{p_{i}+\alpha-1}
+\]
+
+como observamos esta última expresión es una distribución conocida,
+
+\[
+f(\lambda_{i}\mid\beta_{i}\overrightarrow{p},\lambda_{2},..,\lambda_{\beta})\sim Gamma(p_{i}+\alpha,t_{i}+\beta)
+\]
+
+
+por tanto, el kernel híbrido estará compuesto de este kernel Gibbs y del que surge de encontrar 
+
+\[
+f(\beta\mid\lambda,p)\alpha\beta^{\beta\alpha}e^{-\beta\varSigma_{i=1}^{n}\lambda_{i}}\beta^{\gamma-1}e^{-\delta\beta}
+\]
+
+\[
+=\beta^{\beta\alpha+\gamma-1}e^{-\beta(\varSigma_{i=1}^{n}\lambda_{i}+\delta)}
+\]
+
+
+Del mismo modo, se observa que:
+
+\[
+f(\beta\mid\bar{\lambda},\bar{p})\sim Gamma(\beta\alpha+\gamma,\varSigma_{i=1}^{n}\lambda_{i}+\delta)
+\]
+
+Este es por tanto, el segundo Kernel Gibbs. 
+
+Asimismo, para simular MCMC se programará el kernel cero que dejará la cadena en el mismo punto, con esto aseguraremos que la cadena sea fuertemente aperiódica. 
+
+
+
+Teniendo los kerneles, se progrmará la función de estos en R para  simularlos, serán aceptados con probabilidad 1 por ser kernels Gibbs.
+
+guardamos las muestras observadas
+
+```{r}
+a<-1.8  #alfa 
+g<-1.8  # gamma
+d<-1  #delta 
+ti<-c(94.32, 15.72, 62.88, 125.76, 5.24, 31.44, 1.05, 1.05, 2.1, 10.48)
+pi<-c(5, 1, 5, 14, 3, 18, 1, 1, 0, 22)
+
+
+```
+
+
+
+no es necesario programar la función posterior porque usaremos Gibbs
+
+```{r}
+f<-function(beta, lambda){
+  producto<-1
+  for(i in 1:10){
+    
+    producto<-producto*ppois(pi[i],lambda*ti[i])*pgamma(lambda,a, beta)*pgamma(g,d)
+    
+  }
+  
+  return(producto)
+  
+}
+```
+
+generamos los kernel.
+
+```{r, echo=FALSE}
+
+kern<-function(lambda){
+#simulamos para lambda y beta 
+  pi<-rpois(1,lambda[1])
+  bet<-rbeta(1,1.8,1)
+  prop<-rep() #donde se guardara la propuesta. 
+  u1<-runif(1)
+  if(u1<0.5){
+    prop[1]<-rgamma(1,pi+a,bet)
+    prop[2]<-lambda[2]
+  }else if(u1<0.99){   #Segundo Kernel de Gibbs
+       prop[2]<-rgamma(1,bet*a+g,sum(lam)+d)
+       prop[1]<-lambda[1]
+    }else{  #kernel cero
+      prop<-lambda
+    }
+  return(c(prop, pi))
+  
+  
+}
+
+```
+
+
+generamos la simulacion dado un punto inicial, sea este (2,4)
+La primer columna corresponde a la lambda, la segunda  la betta, y la ultima es pi. 
+
+```{r, echo=FALSE}
+
+simul<-matrix(0,1000,3)
+pin<-c(2,4)
+#sumas de las lambdas
+lam<-1
+for(i in 1:1000){
+  simul[i,]<-kern(pin)
+   pin<-simul[1,1:2]
+ lam<-lam+simul[i,1]
+}
+
+
+```
+
+
+
+Las primeras 20 muestras son
+
+
+```{r}
+simul[1:20,]
+```
+
+
+ Note que al usar el Kernel programado va cambiando de una coordenada cada vez, pues cada kernel mueve solo a un eje.
+*Numero promedio de rechazos*
+
+La función fue programado buscando hacer eficiente el algoritmo, por lo que se emplearon Kernels Gibbs, que aseguran propuestas que utilizaremos, 

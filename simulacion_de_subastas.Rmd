@@ -1,0 +1,738 @@
+---
+title: "Subastas Vickrey"
+output: pdf_document
+---
+
+
+
+#introducción
+ 
+El incremento del uso de subastas para fijar precios en productos de Internet es una realidad.
+Las subastas son una forma eficiente de fijar precios porque requieren poca información  para
+encontrar el precio óptimo y el número de articulos que deberian venderse para maximizar la ganancia.
+
+Las propuestas descritas en este trabajo también buscan
+maximizar la satisfacción de los clientes (oferentes). Cabe destacar que los modelos se enfocan principalmente al comercio electrónico de bienes y servicios que pueden ser intercambiados por Internet (e-books, musica, peliculas, etc...) debido a los costos casi nulos de producción.
+
+
+
+#Subastas utilizadas
+
+
+
+En las subastas de Vickrey o subastas de precio simple los oferentes ofertan un precio sin conocer los propuestos por los demás oferentes. Los seleccionados para la venta del producto serán los k-ésimos oferentes con las más altas ofertas,obtendrán el bien al precio (k+1)-ésimo más alto propuesto. Este tipo de subastas resultan justas y provocan declaraciones reales sobre el valor que asignan los oferentes al producto. 
+
+Con el fin de generar una comparación sobre la efectividad de las subastas recién explicadas, también se analizarán  las subastas de precios diferenciales, donde se aceptan todas las ofertas al precio pactado por cada oferente. Es importante destacar, que en la realidad estas últimas no resultan útiles a menos que los oferentes ignoren la estrategia utilizada, de lo contrario ofrecerán un minimo valor para los productos.  
+
+
+
+#Notación 
+
+Se supondrá que el número de participantes es $N$.
+
+
+$X_{i}$ $,i$$\epsilon(1..,N)$ denotan variables aleatorias independientes idénticamente distribuidas con función de densidad $f_{X}(x)$ que representa la oferta del iésimo participante. 
+
+$X_{(i)}$ representa la iésima estadística de orden, donde: $X_{(1)}\geq X_{(2)}....\geq X_{(N)}$
+
+
+#Métricas
+
+*Métricas para el subastador*
+
+* Ganancias esperadas bajo una seleccion a priori del número de subastas aceptadas. 
+
+* Eficiencia: es la división de las ganancias esperadas en las subastas de precios simples entre las ganancias surguidas en las subastas de precios diferenciales(se aceptan todas las ofertas)
+
+* Pérdida a priori: pérdida  generada por una selección a priori en lugar de una a posteriri. 
+
+*Métricas para el oferente*
+
+* Satisfied Bidders Ratio (SBR): porcentaje de ofertas aceptadas
+
+* Satisfied Utility Margin (SUM): razón del ahorro obtenido por los oferentes entre la sumas de sus ofertas 
+
+El ahorro surgue de la subasta de precio simple donde se venden los productos a un precio menor del que ofrecieron los oferentes. 
+
+
+#Desarrollo analítico 
+
+Supongamos que se aceptarán sólo las r ofertas más altas. Las ganancias, denotadas por R, serán: 
+\[
+R=rX_{(r+1)}
+\]
+ es decir se venderán r productos al precio $X_{(r+1)}$, que representa el (r+1)-ésimo más alto de las ofertas. 
+ si se acpetan k ofertas, el valor esperado de las ganacias es 
+ 
+ \[
+\mathbb{E_{\mathrm{k}}\left[\textrm{R}\right]=\mathrm{kE_{\mathrm{k}}\left[\textrm{\ensuremath{X_{(k+1)}}}\right]}}
+\]
+
+
+Este valor se maximizará cuando se eliga el número correcto de ofertas aceptadas, es deir: 
+
+\[
+\mathbb{E}\left[R_{sp}\right]=\underset{k}{max}(k\mathbb{E}\left[X_{k+1}\right])=k_{opt}\mathbb{E}\left[X_{k_{opt}+1}\right]
+\]
+
+Resolver esta ecuación para el valor K es el objetivo principal del trabajo. Podemos solucionarla a priori suponiendo ciertas distribuciones para las variables aleatorias $X_{i}$  lo cual se realizará en los siguientes apartados. 
+
+
+Para el caso de las subastas de precio difereciales donde se aceptan todas las ofertas, se tendrá que el valor esperado de las ganancias será
+
+\[
+\mathbb{E}\left[R_{dp}\right]=\sum_{i=1}^{n}E\left[X_{(i)}\right]=\sum_{i=1}^{n}E\left[X_{i}\right]=N\mathbb{E}\left[X\right]
+\]
+
+Es necesario aclarar que las subastas de precios diferenciales son las que aseguran, siempre, la mayor cantidad de ganancias por lo que resultan una buena métrica para medir la eficiencia de las subastas de precios simples, como se definió  en el apartado de Métricas se tendrá que la eficiencia será:
+
+\[
+Eff=\frac{\mathbb{E}\left[R_{sp}\right]}{\mathbb{E}\left[R_{dp}\right]}
+\]
+
+
+Asimimo, bajo esta estrategia de subasta se tendrá que el SBR será siempre 1, pues como ya se definió se refiere al porcentaje de ofertas aceptadas. El SUM será cero pues en este esquema los oferentes no se ahorran nada debido a que todas las ofertas son aceptadas, y cada uno paga lo que propuso. 
+
+
+Por otro lado el SBR en el caso de precios simples está dado por:
+
+\[
+SBR=\frac{k_{opt}}{N}
+\]
+
+Que alcanzará su óptimo cuando se acepten N-1 ofertas, y se tendrá que:
+
+\[
+SBR=\frac{N-1}{N}=1-\frac{1}{N}
+\]
+
+EL SUM, métrica que representa el ahorro que gozan los oferentes, para el esquema de precios simples será:
+
+\[
+SUM=\frac{\sum_{i=1}^{k_{opt}}\mathbb{E}\left[X_{(i)}-X_{(k_{opt}+1)}\right]}{\sum_{i=1}^{k_{opt}}\mathbb{E}\left[X_{(i)}\right]}=\frac{\sum_{i=1}^{k_{opt}}\mathbb{E}\left[X_{(i)}\right]-\sum_{i=1}^{k_{opt}}\mathbb{E}\left[X_{(k_{opt}+1)}\right]}{\sum_{i=1}^{k_{opt}}\mathbb{E}\left[X_{(i)}\right]}=1-\frac{k_{opt}\mathbb{E}\left[X_{(k_{opt}+1)}\right]}{\sum_{i=1}^{k_{opt}}\mathbb{E}\left[X_{(i)}\right]}=1-\frac{\mathbb{E}\left[R_{sp}\right]}{\sum_{i=1}^{k_{opt}}\mathbb{E}\left[X_{(i)}\right]}
+\]
+
+El divisor de la ecuación anterior es la suma de las ofertas de los participantes que resultan acreedores al producto.  Mientras que el dividendo, no es más que la suma de las diferencias entre el precio ofertado y el precio al que les será vendido el bien, es decir, es la suma de los ahorros de los k participantes aceptados. 
+
+Está metrica está acotada por 1. Entre más grande sea, la satisfacción de los oferentes es mayor. También es útil ver esta métrica con otra perspectiva, es decir como el porcentaje de pérdida al adoptar el esquema de precios simples en lugar del de precios diferenciados.  
+
+
+
+# OFERTAS UNIFORMES
+
+
+Modelar las ofertas de las subastas con variables uniformes, resulta útil cuando las cantidades ofrecidas están más o menos agrupadas a un valor central. La función se define de la siguiente manera:
+
+\[
+f_{X}(x)\begin{cases}
+\frac{l}{h-l} & l\leq x\leq h\\
+0 & e.o.c
+\end{cases}
+\]
+ 
+Para encontrar las métricas y los puntos óptimos se hará uso de las distribusciones del k-ésimo estadístico de orden que están dadas por:
+
+
+\[
+f_{X_{(r)}}(x)=\frac{N!}{(r-1)!(N-r)!}f_{X}(x)\left[1-F_{X}(x)\right]^{r-1}\left[F_{X}(x)\right]^{N-r},r=1,2,...,N
+\]
+
+y para el caso uniforme se reduce a:
+
+
+\[
+f_{X_{(r)}}(x)=\frac{N!}{(r-1)!(N-r)!}\frac{(h-x)^{r-1}(x-l)^{N-r}}{(h-l)^{N}}
+\]
+$l\leq x\leq h$
+
+que tiene un valor esperado  
+
+\[
+\mathbb{E}\left[X_{r}\right]=l+(h-l)\frac{N+1-r}{N+1}
+\]
+
+por lo que cuando se acepten k ofertas tendremos:
+
+\[
+\mathbb{E_{\mathit{k}}}\left[R\right]=k\mathbb{E}\left[X_{(k+1)}\right]=k\left[l+(h-l)\frac{N+1-(k+1)}{N+1}\right]=k\left[l+(h-l)(1-\frac{k+1}{N+1})\right]=kl\left[1+(\frac{h}{l}-1)(1-\frac{k+1}{N+1})\right]
+\]
+
+se observa un crecimiento lineal en esta ecuación respecto al valor k. Asimismo, resulta de gran utilidad calcular la diferencia de las ganancias por un cambio de una unidad en K,
+
+
+\[
+\Delta_{k}=\mathbb{E}_{k+1}\left[R\right]-\mathbb{E}_{k}\left[R\right]=l+(h-l)(1-\frac{2k}{N+1})
+\]
+
+Esta utilidad marginal se puede tornar negativa en algun punto, que es donde ya no resulta conveniente aumentar el valor k. El óptimo valor de k,  es el k más grande que satisface que 
+
+$\Delta_{k}\geq0$
+
+Se encuentra al desarrollar la desigualdad: 
+
+
+\[
+\Delta_{k}=l+(h-l)(1-\frac{2k}{N+1})\geq0
+\]
+
+\[
+\Rightarrow(1-\frac{2k}{N+1})\geq\frac{-l}{(h-l)}
+\]
+
+\[
+\Rightarrow-2k\geq(\frac{-l}{h-l}-1)(N+1)
+\]
+
+
+\[
+\Rightarrow k_{opt}=\left\lfloor \frac{N+1}{2}\frac{h/l}{h/l-1}\right\rfloor 
+\]
+
+Donde los corchetes denotan la función piso. Las expresión encontrada del K óptimo al ser realizada teniendo en cuenta una subata de precios simples, sólo tendrá sentido si el numero de ofertas aceptadas no es igual al número de participantes (pues si no, sería una subasta de precios diferenciales), analiticamente se busca que: 
+
+\[
+\frac{N+1}{2}\frac{h/l}{h/l-1}\leq N
+\]
+
+ que a su vez implica que  
+ 
+ \[
+\frac{N+1}{2}\frac{h/l}{h/l-1}\leq N
+\]
+
+En conclusión si  se tiene $h/l<2$ deben acepatarse todas las ofertas excepto la mínima. De lo contrario encontrarémos el k óptimo de acuerdo a la ecuación mencionada arriba. 
+
+
+Los autores del articulo definen a la función de ganancias como una aproximación que se obtiene al sustituir los valores óptimos en las ecuaciones de las esperanzas de las ganancias:
+
+\[
+\mathbb{E}\left[R_{sp}\right]\approx\begin{cases}
+Nl+h-l & \frac{h}{l}<2\\
+\frac{Nh^{2}}{4(h-l)} & \frac{h}{l}\geq2
+\end{cases}
+\]
+
+
+Observemos graficamente los resultados que se obtienen al graficar las funciones, para una subasta de 100 participantes, 
+
+
+
+Asimismo, podemos observar que la métrica SUM converge a una constante, 1/3
+
+
+En el caso de las subastas de precios diferenciales, suponiendo la distribución uniforme los resultados son claros:
+
+\[
+\mathbb{E}\left[R_{dp}\right]=\sum_{i=1}^{n}E\left[X_{(i)}\right]=\sum_{i=1}^{n}E\left[X_{i}\right]=N\mathbb{E}\left[X\right]=N\frac{h+l}{2}
+\]
+
+
+La eficiencia de la subastas de precios simples, puede ser calculada al ser comparada con las subastas de precios diferenciales con la métrica definida al principio. Cuando $h/l<2$
+
+
+\[
+Eff=\frac{\mathbb{E}\left[R_{sp}\right]}{\mathbb{E}\left[R_{dp}\right]}\approx\frac{2}{h/l+1}(1+\frac{h/l-1}{N})
+\]
+
+
+y cuando  $h/l\geq2$ se tendrá que:
+
+\[
+Eff=\frac{\mathbb{E}\left[R_{sp}\right]}{\mathbb{E}\left[R_{dp}\right]}\approx\frac{1}{2\left[1-(\frac{l}{h})^{2}\right]}
+\]
+
+Como se observa la ecuación no depende del valor de N. Pero decrecerá grandemente cuando el valor $l$ y $h$ difieren más 
+
+
+##Simulaciones
+
+\vspace{3mm} 
+
+
+La siguiente gráfica muestra los resultados análiticos de las ganancias  de la subasta de precios simples en función del porcentaje de ofertas aceptadas, suponiendo cien participantes y una distribución uniforme de los precios ofrecidos. 
+
+\vspace{6mm} 
+
+```{r, echo=FALSE, fig.height=3, fig.width=6, warning=FALSE}
+#install.packages("ggplot2")
+library("ggplot2")
+N<-100
+l<-1
+h1<-5
+h2<-2.5
+h3<-3
+rev<-function(x){x*l*((h1/l-1)*(1-(x+1)/(N+1))+1)}
+rev2<-function(x){x*l*((h2/l-1)*(1-(x+1)/(N+1))+1)}
+rev3<-function(x){x*l*((h3/l-1)*(1-(x+1)/(N+1))+1)}
+
+
+p<-ggplot(NULL, aes(x=x, colour=valor_max))
+p+ stat_function(data=data.frame(x=1:100, valor_max=factor(1)),fun = rev) + 
+  stat_function(data=data.frame(x=1:100, valor_max=factor(2)),fun = rev2) +
+  stat_function(data=data.frame(x=1:100, valor_max=factor(3)),fun = rev3) + 
+  scale_colour_manual(values=c("red", "blue", "green"),labels=c("U(1,5)", "U(1,2.5)", "U(1,3)")) +
+  ylab("ganancias esperadas") + xlab("porcentaje de ofertas aceptadas") + ggtitle("Resultados analíticos, modelo uniforme") + theme(plot.background = element_rect(fill = "lightgoldenrodyellow")) + theme(panel.background = element_rect(fill = "aliceblue", colour = "black")) +
+  theme( legend.background = element_rect(fill = "lightgoldenrodyellow"))
+
+
+```
+
+Como se observa la función tiene  un máximo y como se mencionó en el apartado anterior hay un punto donde la función se vuelve decreciente.
+
+
+Comparando la subasta simulada  con dos de los resultados analíticos anterirores se obtiene:
+
+\vspace{6mm} 
+
+```{r, echo=FALSE, fig.height=3, fig.width=6, warning=FALSE}
+set.seed(0)
+u<-runif(100,1,5)
+or<-sort(u)
+r<-rep()
+
+for (i in 1:99){
+  r[i]<-(i*or[(100-i)])
+}
+
+
+v<-runif(100,1,2.5)    
+or1<-sort(v)
+r1<-rep()
+
+for (i in 1:99){
+  r1[i]<-(i*or1[(100-i)])
+}
+serie<-c(rep(1,99),rep(2,99))
+xx<-seq(1:99)
+
+  
+datos<-data.frame(xx,c(r,r1), serie)
+
+
+
+ggplot(datos, aes(x=xx, y=c(r,r1), group=serie, colour=factor(serie)))+geom_line()+
+  xlab("aceptadas") + geom_point() + labs(colour="Simulados")+
+  stat_function(fun = rev, colour ="red") +  stat_function(fun = rev2, colour ="green") +
+  scale_colour_manual(values=c("coral1", "greenyellow"),labels=c("U(1,2.5)", "U(1,5)")) + labs(shape="simulados") + ggtitle("Simulados vs teóricos") + xlab("porcentaje de ofertas aceptadas")  +
+  ylab("ganancias esperadas") + theme(plot.background = element_rect(fill = "lightgoldenrodyellow")) + theme(panel.background = element_rect(fill = "aliceblue", colour = "black")) +
+  theme( legend.background = element_rect(fill = "lightgoldenrodyellow"))
+
+
+```
+
+Como se observa los valores obtenidos difieren cada vez más en porcentajes altos de aceptacion. Aunque se simularon pocas uniformes para construir la gráfica, cien para ser exactos, se nota un buen ajuste a la curva real. Esto será de gran utilidad, porque como se verá después algunas distribuciones no tienen formas analíticas, pero podemos afirmar que el método de simular N variables y encontrar la k óptima es eficiente ún tomando pocas simulaciones. 
+
+
+Observemos ahora la relación existente entre  los valores k óptimos analíticos en relación del ratio h/l (extremos de la distribución uniforme). 
+
+```{r, echo=FALSE, fig.height=3, fig.width=6, warning=FALSE}
+h<-3
+N<-100
+ganopt<-function(x){
+    #resulatado<-N/4*h^2/(h-l)
+  floor((N+1)/2*x/(x-1))
+}
+
+ganopt2<-function(x){
+    #resulatado<-N/4*h^2/(h-l)
+  floor((10000+1)/2*x/(x-1))/100
+}
+
+df<-data.frame(x1=0,x2=2,y1=100,y2=100)
+men2<-function(X){100}
+
+
+q<-ggplot(NULL, aes(x=x, colour=valor_max))
+q+ stat_function(data=data.frame(x=2:7, valor_max=factor(1)),fun = ganopt, xlim=c(2,5.5), size=.5) +
+  stat_function(data=data.frame(x=2:7, valor_max=factor(2)),fun = ganopt2, xlim=c(2,5.5), size=.5) +
+  stat_function(data=data.frame(x=0:2, valor_max=factor(1)),fun = men2, xlim = c(0,2.05)) +
+  scale_colour_manual(values=c("black", "coral"),labels=c("N=100", "N=10000"))+
+  xlab("h/l") + ylab("SBR") + ggtitle("valores k óptimos análiticos") + theme(plot.background = element_rect(fill = "lightgoldenrodyellow")) + theme(panel.background = element_rect(fill = "aliceblue", colour = "black")) +
+  theme( legend.background = element_rect(fill = "lightgoldenrodyellow"))
+
+
+```
+
+Los brincos que se observan en la gráfica son provocados por la función "piso" que se utiliza para elegir el óptimo, entre mayor es el número de participantes en la subasta la curva se suaviza.  
+
+
+
+Observemos ahora la eficiencia del algortimo, la gráfica de la función analítica es:
+
+
+```{r, echo=FALSE, fig.height=3, fig.width=6, warning=FALSE}
+
+ff<-function(x){0.5}
+
+eficaprox<-function(x){1/(2*(1-(x)^-2))}
+q<-ggplot(NULL, aes(x=x, colour=valor_max))
+q + stat_function(data=data.frame(x=2:7, valor_max=factor(1)),fun = eficaprox, size=.5) + geom_hline(yintercept = 0.5, col="blue")+ theme(plot.background = element_rect(fill = "lightgoldenrodyellow")) + theme(panel.background = element_rect(fill = "aliceblue", colour = "black")) +
+  theme( legend.background = element_rect(fill = "lightgoldenrodyellow"))+
+  xlab("h/l") + ylab("Nivel de eficiencia") + ggtitle("Eficiencia en distribuciones uniformes") + theme(legend.position = "none") 
+```
+
+Es asintótica a 0.5, esto quiere decir que cuando el ratio es grande los ingresos obtenidos serán aproximadamente la mitad de los que proporcionarían la subastas de precios simples.
+
+
+#Distribución triangular 
+
+Observemos lo que sucede ahora con la distribución triangular, cuya función de densidad es: 
+
+\[
+f_{X}(x)=\begin{cases}
+\frac{4(x-l)}{(h-l)^{2}} & l\leq x\leq\frac{l+h}{2}\\
+\frac{4(h-x)}{(h-l)^{2}} & \frac{l+h}{2}\leq x\leq h\\
+0 & e.o.c
+\end{cases}
+\]
+
+De la misma forma que el anterior este modelo es útil cuando las propuestas estan centadas  a un valor común. La  gráfica de la densidad con loas parametros a =0, b=1/2, c=1 es: 
+
+```{r, echo=FALSE, fig.height=3.5, fig.width=4.5}
+plot(c(0,0.5,1),c(0,2,0), ylim=c(0,2.5), xlim=c(-0.2,1.2), main="Distribución triangular", xlab="X", ylab="Y")
+polygon(c(0,0.5,1),c(0,2,0), col="skyblue3")
+```
+
+El valor esperado de las estadísticas de orden están dados por 
+
+\[
+E_{k}[R]=\frac{N!}{(k-1)!(N-k-1)!}\frac{1}{(h-l)^{2N}}\{2^{N+1-k}\int_{l}^{\frac{l+h}{2}}x(x-l)^{2(N-k)-1}[(h-l)^{2}-2(x-l)^{2}]^{k}dx+
+\]
+
+\[
++2^{k+2}\int_{\frac{l+h}{2}}^{h}x(h-x)^{2k-3}[(h-l)^{2}-2(h-x)^{2}]^{N-k-1}dx\}
+\]
+
+##simulaciones
+
+Para simular esta distribución se utilizó el método de transformada inversa, esta función recibe cuatro parámetros, una uniforme, el valor mínimo, mediana y máximo de la distribución. 
+
+Para observar el comportamiento que tienen las ganancias esperadas en relación con el porcentaje de ofertas aceptadas se simularon 100 datos. Observemos las gráficas que producen estas simulaciones: 
+
+
+
+
+```{r, echo=FALSE,  fig.height=3, fig.width=6, warning=FALSE}
+trian<-function(p,l,m, u){ #p runif, limite inf, mediana, superior, 
+  if(p<(m-l)/(u-l)){  #metodo de transformada inversa
+    a=1
+    b=-2*l
+    c=l^2-p*(m-l)*(u-l)
+    sim<-(-b+sqrt(b^2-4*a*c))/2/a
+    
+  }else if(p<1){
+      b=-2*u
+      c=u^2-(1-p)*(u-l)*(u-m)
+      sim<-(-b-sqrt(b^2-4*c))/2
+    }
+  return(sim)
+  }
+  
+u<-rep()
+  for(i in 1:100){ u[i]<-trian(runif(1),1,2.5,5)}
+or<-sort(u)
+r<-rep()
+for (i in 1:99){
+  r[i]<-(i*or[(100-i)])
+}
+
+v<-rep()
+  for(i in 1:100){ v[i]<-trian(runif(1),1,1.75,2.5)}
+or<-sort(v)
+r1<-rep()
+for (i in 1:99){
+  r1[i]<-(i*or[(100-i)])
+}
+
+z<-rep()
+  for(i in 1:100){ z[i]<-trian(runif(1),1,1.25,1.5)} #generamos numeros de la inversa
+or<-sort(z)
+rf<-rep()
+for (i in 1:99){
+  rf[i]<-(i*or[(100-i)])
+}
+
+serie<-c(rep(1,99),rep(2,99), rep(3,99))
+xx<-seq(1:99)
+
+  
+datos<-data.frame(xx,c(r,r1,rf), serie)
+
+ggplot(datos, aes(x=xx, y=c(r,r1,rf), group=serie, colour=factor(serie)))  +geom_line()+
+  xlab("aceptadas") + geom_point() + labs(colour="Simulados")+
+  scale_colour_manual(values=c("coral1", "greenyellow", "yellow"),labels=c("t(1,2.5,5)", "t(1,1.75,2.5)", "t(1,1.25,1)")) + labs(shape="simulados") + ggtitle("Simulados distribución triangular") + xlab("porcentaje de ofertas aceptadas")  +
+  ylab("ganancias esperadas") + theme(plot.background = element_rect(fill = "lightgoldenrodyellow")) + theme(panel.background = element_rect(fill = "aliceblue", colour = "black")) +
+  theme( legend.background = element_rect(fill = "lightgoldenrodyellow"))
+
+  
+```
+
+
+Como se observa los resultados obtenidos son similares al caso en que la distribucion es uniforme. Resaltan  dos pequeñas diferencias la ganancia máxima es un poco más grande  y el porcentaje de susbastas aceptadas es más alto en el caso de la distribución triangular, lo que resulta benéfico para los participantes, pues las métricas SBR y SUM les serán más favorables.   
+
+
+Observe ahora el SBR en función del ratio h/l, para obtener estas gráficas se simularon quince mil valores por cada punto:
+
+```{r, echo=FALSE, fig.height=3, fig.width=6}
+#simulamos los valores óptimos.
+
+#generamos 10000 muestras de cada punto
+
+sumas<-rep()  #guardara los precios diferenciales
+cd<-seq.int(1,5,0.5)
+lista<-rep()
+ganancias<-rep()
+maxim<-rep()
+historicos<-rep()
+
+for(i in 1:9){
+  for(j in 1:15000){
+    lista[j]<-trian(runif(1),1,i/2,cd[i])
+    
+  }
+ 
+  sumas[i]<-sum(lista)/150
+  listaord<-sort(lista)
+   historicos<-cbind(historicos,listaord)
+ for(k in 1:14999){
+   ganancias[k]<-k*listaord[(15000-k)]
+ }  
+  maxim[i]<-which.max(ganancias)
+  lista<-rep()
+}
+
+datos1<-data.frame(cd,maxim)
+
+ggplot(datos1, aes(x=cd, y=maxim/150)) + geom_line(lwd=1, col="skyblue") + geom_point(col="darkblue", pch=21, lwd=2.5) + labs(colour="Simulados")+ 
+  scale_colour_manual(values=c("skyblue"),labels=c("t(1,2.5,5)")) +   ggtitle("Porcentaje de ofertas aceptadas ") + xlab("h/l")  +
+  ylab("SBR") + theme(plot.background = element_rect(fill = "lightgoldenrodyellow")) + theme(panel.background = element_rect(fill = "aliceblue", colour = "black")) +
+  theme( legend.background = element_rect(fill = "lightgoldenrodyellow")) + ylim(c(50,100))
+
+ 
+```
+
+Como era de esperarse la métrica que nos dice el porcentaje de ofertas aceptadas resulta mucho más alto que en el caso uniforme. 
+
+Por último se muestra la gráfica de la eficiencia (ratio entre ganancias en las subastas de precios simples entre las ganancias por precios diferenciales):
+
+
+```{r, fig.height=3, fig.width=6, echo=FALSE}
+
+datos2<-data.frame(cd,sumas)
+ganesp<-rep()
+for(i in 1:9){
+  ganesp[i]<-historicos[,i][15000-maxim[i]]*maxim[i]
+}
+
+ggplot(datos2, aes(x=cd, y=(ganesp/150/sumas))) + geom_line(lwd=1, col="skyblue") + geom_point(col="darkblue", pch=21, lwd=2.5) + labs(colour="Simulados")+ 
+  scale_colour_manual(values=c("skyblue"),labels=c("t(1,2.5,5)")) +   ggtitle("Eff distribución trianguular ") + xlab("h/l")  +
+  ylab("Eficiencia") + theme(plot.background = element_rect(fill = "lightgoldenrodyellow")) + theme(panel.background = element_rect(fill = "aliceblue", colour = "black")) +
+  theme( legend.background = element_rect(fill = "lightgoldenrodyellow")) 
+
+
+```
+
+
+Como se observa mientras las ofertas son más dispersas se tiene una menor eficiencia. Sin embargo es interesante notar que también se tiene un eficiencia mejor que en el caso uniforme. Cuando el ratio es 5, se tiene una eficiencia aproximada del 60%
+
+
+Por último la métrica SUM (muestra el ahorro de los participantes) es de la siguiente forma: 
+
+
+```{r, fig.height=3, fig.width=6, echo=FALSE}
+ahorro<-rep()
+ptos<-rep()
+oferta<-rep()
+for( i in 1:9){
+   ahorro[i]<-(sum(historicos[,i][(15000-maxim[i]):15000])-historicos[,i][15000-maxim[i]]*maxim[i])
+   oferta[i]<-sum(historicos[,i][(15000-maxim[i]):15000])
+   ptos[i]<-ahorro[i]/oferta[i]
+}
+
+
+datos3<-data.frame(cd,ptos)
+
+ggplot(datos3, aes(x=cd, y=ptos)) + geom_line(lwd=1, col="skyblue") + geom_point(col="darkblue", pch=21, lwd=2.5) + labs(colour="Simulados")+ ylim(0,.4)+
+  scale_colour_manual(values=c("skyblue"),labels=c("t(1,2.5,5)")) +   ggtitle("SUM distribución trianguular ") + xlab("h/l")  +
+  ylab("SUM") + theme(plot.background = element_rect(fill = "lightgoldenrodyellow")) + theme(panel.background = element_rect(fill = "aliceblue", colour = "black")) +
+  theme( legend.background = element_rect(fill = "lightgoldenrodyellow")) 
+
+
+```
+
+
+Como se observa es una función que crece mientras aumenta las dispersión de las ofertas, tiende al valor 1/3, como se comentó en apartados anteriores. 
+
+
+#Distribución  normal
+
+La k-ésima estadística de orden de variables aleatorias normales no tiene una forma analítica por lo que resulta necesario simularlas. Debemos tener en cuenta que estas variables toman valores negativos, por lo que en el artículo en el que se basa el proyecto se propone que entre h y l haya seis desviaciones estanda,r, y que la media esté alejada del cero. 
+Observemos los resultados gráficos que se obtienen 
+
+```{r, echo=FALSE,  fig.height=3, fig.width=6, warning=FALSE}
+
+u<-rep()
+u<-rnorm(100,2,3/sqrt(12)) #h/l=3
+or<-sort(u)
+r<-rep()
+for (i in 1:90){
+  r[i]<-(i*or[(100-i)])
+}
+
+v<-rep()
+ v<-rnorm(100,3,5/sqrt(12))   #h/l=5
+ord<-sort(v)
+r1<-rep()
+for (i in 1:90){
+  r1[i]<-(i*ord[(100-i)])
+}
+
+
+serie<-c(rep(1,90),rep(2,90))
+xx<-seq(1:90)
+
+  
+datos<-data.frame(xx,c(r,r1), serie)
+
+ggplot(datos, aes(x=xx, y=c(r,r1), group=serie, colour=factor(serie)))  +geom_line()+
+  xlab("aceptadas") + geom_point() + labs(colour="Simulados")+
+  scale_colour_manual(values=c("coral1", "greenyellow", "yellow"),labels=c("h/l=3", "h/l=", "t(1,1.25,1)")) + labs(shape="simulados") + ggtitle("Simulados distribución normal") + xlab("porcentaje de ofertas aceptadas")  +
+  ylab("ganancias esperadas") + theme(plot.background = element_rect(fill = "lightgoldenrodyellow")) + theme(panel.background = element_rect(fill = "aliceblue", colour = "black")) +
+  theme( legend.background = element_rect(fill = "lightgoldenrodyellow"))
+
+  
+``` 
+
+
+#Pérdidas al suponer distribuciones erroneas 
+
+
+Otro punto interesante es ver qué sucede cuando suponemos una distribución para las ofertas equivocadas, en este caso veamos qué sucede cuando se distribuyen uniformes, pero suponemos que tenian distribucion normal.
+
+##Caso en que se supone normalidad cuando era uniforme
+
+Supongamos que los parámetros elegidos coinciden con los momentos de la distribución real, es decir: 
+\[
+\mu=\frac{l+h}{2}
+\]
+
+\[
+\sigma=\frac{h/l}{\sqrt{12}}
+\]
+
+observemos las perdidas que se esperarian
+
+```{r, echo=FALSE,  fig.height=3, fig.width=6, warning=FALSE}
+cd<-seq.int(1,5,0.5)
+posiciones<-rep()    ##simulamos el caso de una uniforme
+
+  resultado<-rep()
+  histunif<-matrix(0,100,9)
+  rr<-rep()  #auxiliar
+  histo<-rep()
+  for(i in 1:9){
+    histunif[,i]<-sort(runif(100,1,cd[i]))
+    for(j in 1:99 ){
+      rr[j]<-j*histunif[(100-j),i]
+    }
+    histo<-cbind(histo,histunif[,i])
+    posiciones<-c(posiciones,which.max(rr))
+    resultado<-c(resultado,rr[which.max(rr)])
+  }
+   #c(resultado,posiciones)   ##resultados finales 
+   
+   #simular de una normal para obtener las posiciones de que se esperarian.. 
+    #tendran las siguientes medias, 
+
+medias<-(cd+1)/2
+histonor<-matrix(0,100,9) #se guardaran
+rrn<-rep()  #auxiliar
+ #historicos matriz con las nueve cols.
+resultadonor<-rep()
+posicionesnor<-rep()
+for(i in 1:9){
+  histonor[,i]<-sort(rnorm(100,medias[i],cd[i]/sqrt(12)))
+  for(j in 1:99 ){
+    rrn[j]<-j*histonor[(100-j),i]
+  }
+  histonor<-cbind(histonor,histonor[,i])
+  posicionesnor<-c(posicionesnor,which.max(rrn))
+  resultadonor<-c(resultadonor,rrn[which.max(rrn)])
+}
+#c(resultadonor,posicionesnor)
+
+
+#las ganancias con las posiciones obtenidas del caso normal 
+
+d<-rep()
+for(i in 1:9){
+  d[i]<-histo[,i][101-round(posicionesnor[i])]*(round(posicionesnor[i]))
+}
+plot(cd,resultadonor/d, type="l", col="blue", main="Suponer normal una uniforme", ylab="porcentaje de pérdidas", xlab="h/l")
+points(cd,resultadonor/d, pch=19)
+  
+
+```
+
+
+Como se observa, la  pérdida ocasionada por seleccionar otra distribución, en este caso la varibale uniforme es demasiado  bajo. 
+
+
+##Caso en que se supone una distribución triangular cuando era uniforme
+
+
+
+En caso de cquerer comparar el caso en que se elige la distribución triangular en lugar de la uniforme tiene el siguiente reisgo: 
+
+
+```{r, echo=FALSE,  fig.height=3, fig.width=6}
+
+medias<-(cd+1)/2
+histonor<-matrix(0,100,9) #se guardaran
+rrn<-rep()  #auxiliar
+ #historicos matriz con las nueve cols.
+z<-rep()
+resultadonor<-rep()
+posicionesnor<-rep()
+for(i in 1:9){
+  #histonor[,i]<-sort(rnorm(100,medias[i],cd[i]/sqrt(12)))
+  for(l in 1:100){ z[l]<-trian(runif(1),1,1.25,1.5)}
+  histonor[,i]<-sort(z)
+  for(j in 1:99 ){
+    rrn[j]<-j*histonor[(100-j),i]
+  }
+  histonor<-cbind(histonor,histonor[,i])
+  posicionesnor<-c(posicionesnor,which.max(rrn))
+  resultadonor<-c(resultadonor,rrn[which.max(rrn)])
+}
+
+plot(cd,resultado/resultadonor, type="l", col="blue", main="Suponer triangular una uniforme", ylab="porcentaje de pérdidas", xlab="h/l")
+points(cd,resultado/resultadonor, pch=19)
+```
+
+
+#Conclusiones 
+
+Las estrategías explicadas para la fijación de precios resultan muy útiles. Los algoritmos y datos obtenido no varian mucho si el tamaño de participantes crece, por lo que lo que los resultados obtenidos pueden ser aplicados a grandes mercados. 
+
+Estas estrategias resultan muy útiles, porque se pueden fijar precios a priori teniendo una idea de la distribución del valor que ofrecen las personas por un bien o servicio. Las pérdidas por seleccionar el número de ventas a priori en lugar de a posteriori son pequeñas. 
+
+Los modelos mostrados tienen la coincidencia de distribuir las ofertas en torno a un valor central. Por lo que los resultados no son tan distintos, sin embargo sí notamos diferencias en las ganancias esperadas y las eficiencias.  
+
+
+
+
+#Bibliografía
+
+
+M. Nald, G. D'Acquisto. (2006). Performance of the Vickrey Auction for Digital Goods under various
+Bid Distributions
+
+
+
+
+
+
+
+
+

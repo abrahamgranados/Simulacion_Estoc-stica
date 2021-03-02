@@ -1,0 +1,334 @@
+---
+title: "Tarea 5"
+output: pdf_document
+---
+
+#Ejercicio 1
+
+
+Dada la función de Laplace asimétrica, podemos simular muestras con  su función de distribución  inversa y variables aleatorias uniformes, analíticamente se generan a partir de la siguiente expresión: la 's' representa la función signo:
+\[
+X=m-\frac{1}{\lambda sk^{s}}log(1-Usk^{s})
+\]
+
+donde s representa la función signo.
+
+Para simular 10,000 muestras dee la variableLaplace asimétrica con párametros $\mu=0, \lambda=2,  k=1.5$ se crea el siguiente bucle:
+
+```{r}
+x<-rep()
+m<-0
+la<-2
+k<-1.5
+ for(i in 1:10000){
+   u<-runif(1,-k,1/k)
+   x[i]<-m-(1/(la*sign(u)*k^(sign(u))))*log(1-u*sign(u)*k^(sign(u)))
+ }
+```
+
+
+Graficamente obtenemos: 
+
+```{r, fig.height=3, fig.width=4.5, echo=FALSE}
+plot(density(x), main="Densidad Laplace asimétrica, n=10,000", ylim=c(0,1), xlim=c(-4,2))
+```
+
+##A) estimación de la mediana 
+
+Podemos estimar la mediana empiricamente del vector X que contiene las diez mil simulaciones, con la función median aplicada a X:
+
+```{r}
+median(x)  #mediana aproximada
+```
+
+Es una buena aproximación, pues la mediana teórica está dada por: 
+\[
+med(X)=\mu+(k/\lambda)log(\frac{1+k^{2}}{2k^{2}})
+\]
+
+Para este caso es:
+
+```{r}
+mt<-m+(k/la)*log((1+k^2)/(2*k^2))  #mediana teorica
+mt
+```
+
+
+##B) Estimación de la media
+
+La podemos estimar con la función mean aplicada al vector X.
+
+```{r}
+map<-mean(x)   #media aproximada
+map
+```
+
+La media teorica está dada por 
+
+\[
+mean(X)=m+\frac{1-k^{2}}{\lambda k}
+\]
+
+Para el caso concreto es: 
+
+```{r,echo=FALSE}
+medt<-m+(1-k^2)/(la*k)    ##media teorica
+medt
+```
+
+
+Como se observa las aproximaciones, son muy cercanas los valores teóricos.
+
+El error relativo de la media es: 
+
+```{r}
+ER<-abs(medt-map)/medt
+ER
+```
+
+
+
+##C) Estimación de la media con variable control
+
+Para estimar la media con variables control, vamos a definir a bern2 como una variable aleatoria Ber(0.5), que se simulará asignando 1 o 0, dependiendo  si los valores de la muestra simulada en el vector X caen del lado derecho o izquierdo del cuantil 0.5,
+
+```{r, echo=FALSE}
+bern2<-rep()
+for(i in 1:10000){
+  if(x[i]<mt){
+    bern2[i]<-0
+  }else{
+    bern2[i]<-1
+  }
+  
+}
+```
+
+
+Definiremos a la variable control como $Y=X-C(bern2-0.5)$
+Donde C será el valor que minimiza la expresión, es decir  $C=\frac{cov(X,bern2)}{var(bern2)}$
+dado que C es positivo se disminuirá la varianza de X
+
+```{r}
+C<-cov(bern2,x)/var(bern2)
+C
+```
+
+Estimemos la media apartir de la variable control, generamos nuevamente 10,000 simulaciones: 
+
+```{r}
+
+y<-rep()    
+for(i in 1:10000){
+y[i]<-x[i]+(cov(x,bern2)/var(bern2))*(bern2[i]-0.4952)
+}
+map2<-mean(y)
+```
+
+
+El error relativo es ahora:
+
+```{r}
+ER2<-abs(map2-medt)/medt
+ER2
+```
+
+NOTA: al usar la variable control, se logra que disminuya la varianza al elegir el c que minimiza la expresión. 
+
+
+
+
+###Ejercicio 2
+
+**grafique los puntos** $(\bar{X},n)$
+
+*caso de la N(0,1)*
+
+Simulamos 1000 normales, graficamos contra el promedio de las primeras i.
+
+```{r, echo=FALSE}
+y<-rep()
+set.seed(0)
+x<-rnorm(1000)
+ejx<-seq(1:1000)
+for(i in 1:1000){
+  y[i]<-mean(x[1:i])
+}
+```
+
+graficamente obtenemos:  
+
+```{r, fig.height=3, fig.width=5, echo=FALSE}
+plot(ejx,y, main="promedio de v.a.s N(0,1)", ylim=c(-2,2), col="gray", xlab="tamaño de muestra", ylab="promedio")
+```
+
+Como era de esperarse convergen a la media de la N(0,1), ie, 0. 
+
+
+
+**caso Gamma(10,0.1)**
+
+La esperanza de esta variable aleatoria es $10/.1=100$, la gráfica muestra como los promedios convergen a este valor mientras n crece.
+
+```{r,  fig.height=3, fig.width=5, echo=FALSE}
+
+y<-rep()
+set.seed(0)
+x<-rgamma(1000,10,.1)
+ejx<-seq(1:1000)
+for(i in 1:1000){
+  y[i]<-mean(x[1:i])
+}
+
+
+plot(ejx,y, main="promedio de v.a.s G(10,.01)", ylim=c(80,125), col="blue",  xlab="tamaño de muestra", ylab="promedio")
+
+```
+
+**caso Cauchy(0,1)**
+
+Este caso resulta interesante, debido a que la distribución Cauchy no tiene una esperanza, graficamente se obtiene que: 
+
+```{r,  fig.height=3, fig.width=5, echo=FALSE}
+
+y<-rep()
+set.seed(0)
+x<-rcauchy(1000,0,1)
+ejx<-seq(1:1000)
+for(i in 1:1000){
+  y[i]<-mean(x[1:i])
+}
+
+
+plot(ejx,y, main="promedio de v.a.s Cauchy(10,1)", ylim=c(-10,10), col="blue",  xlab="tamaño de muestra", ylab="promedio")
+
+```
+
+se observa un comportamiento no uniforme, varian muchos los datos antes de las 500 muestras. Después parece tender a cero, la media muestral es: 
+
+```{r}
+mean(y)
+```
+
+Al usar el método de Monte Carlo se obtendrán resultados poco prudentes.
+
+
+*Distribución de la  media muestral*
+
+Recordemos que:
+
+1) $Si$ $X\backsim Cauchy(x_{0},b_{0})$ y $Y\backsim Cauchy(x_{1},b_{1}),$independientes
+entonces $X+Y\sim Cauchy(x_{0}+x_{1},b_{0}+b_{1})$
+
+2) Si $X\backsim Cauchy(x_{0},b_{0})$ y $\lambda\epsilon\mathbb{R}$
+, entonces $\lambda X\sim(x_{0}\lambda,b_{0}|\lambda|)$
+
+Por tanto, se sigue que : 
+
+$(X_{1}+\ldots+X_{1000})\sim Cauchy(0,1000)$ con $X_{i}\sim Cauchy(0,1)$
+
+y por el punto 2)   $\overline{X}=\frac{(X_{1}+\ldots+X_{1000})}{1000}$$\sim Cauchy(0,1000/1000)=Cauchy(0,1)$
+
+
+
+###¿Qué pasa si usamos el método Monte Carlo?
+
+Como se observa en las gráficas, al calcular los promedios no parece converger a ningun valor, la tendencia cambia constantemente a diferencias de las variables con media definida, como los primeros dos ejemplos. 
+
+
+
+
+
+#Ejercicio 3
+
+##A) Particionar ambos ejes con la serie de Van Der Corput
+
+Para particionar el eje X, y Y, se programó la función "Vander" que recibe como parámetros la base y el elemento de la serie que se desea generar. 
+
+```{r, echo=FALSE}
+
+vander<-function(n,base){
+  q<-0
+  bk<-as.double(1/base)
+  while(n>0){
+    q=as.double((n%%base)*bk+q)
+    n=as.integer(n/base)
+    bk=as.double(bk/base)
+  }
+  return(q)
+}
+```
+
+Para obtener los primeros 1000 términos utilizamos un for, que nos de el iésimo término en cada iteraciónn. Para comprobar que la función es correcta se imprimen los primeros 20 términos: 
+
+
+
+```{r}
+
+r<-rep() #
+for(i in 1:1000){
+  r[i]<-vander(i,10)  #guardamos los valores de la serie.
+}
+r[1:20]
+
+```
+
+Graficamente tenemos: 
+
+```{r, fig.height=3, fig.width=4.5, echo=FALSE}
+plot(r,r,xlim = c(0,1), ylim=c(0,1), xlab = "Van Der Corput, 10", ylab="Van Der Corput, 10", main = "1000 términos")
+```
+nota: se obtiene la identidad porque estamos graficando en ambos ejes lo mismo. Se aprecia una distribución uniforme en el intervalo [0,1]
+
+
+##B) particionar ambos ejes con Van Der Corput, distinta base.
+
+Para generar la sucesión Van Der Corput con base 7, y 11, se utiliza la función creada en el inciso anterior, solo cambian los parámetros, análogamente generamos 1000
+
+
+```{r}
+x<-rep()
+for(i in 1:1000){
+  x[i]<-vander(i,7)
+}
+y<-rep()
+for(i in 1:1000){
+  y[i]<-vander(i,11)
+}
+```
+
+Graficamente se obtiene: 
+
+```{r, fig.height=4, fig.width=5, echo=FALSE}
+plot(x,y,xlim = c(0,1), ylim=c(0,1), xlab = "Van Der Corput, 7", ylab="Van Der Corput, 11", main = "1000 términos")
+```
+
+
+###¿Por qué se sugiere utilizar series de Halton?
+
+Considero que son importantes porque son secuencias de baja discrepancia (parecen aleatorias pero cubren el dominio uniformemente), y tienen la ventaja de ser de fácil implementación debido a su definición en base a la función radical inversa.
+
+Estas secuencias permiten ciertas veces una convergencia más rápida que usando números pseudoaleatorios. 
+
+
+
+##C) Hammersley 7,11
+
+
+La secuencia de Hammersley es una adaptación de la secuencia de Halton, empezando con el primer elemento i/k. 
+
+Tomamos los ejes del inciso anterior, modificando las entradas del vector x, eliminando la última, agregando la primera y recorriendo el resto.
+
+```{r, echo=FALSE}
+xx<-rep()
+xx<-c(0,x[1:999])
+
+```
+
+Graficamente obtenemos  que: 
+
+```{r, echo=FALSE, fig.height=4, fig.width=5, echo=FALSE}
+plot(xx,y,xlim = c(0,1), ylim=c(0,1), xlab = " 7", ylab="11", main = "Hammersley, 1000")
+```
+
+

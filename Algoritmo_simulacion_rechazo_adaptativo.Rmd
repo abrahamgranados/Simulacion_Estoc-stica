@@ -1,0 +1,389 @@
+---
+title: "TAREA 3"
+output: pdf_document
+---
+**Aceptacion y rechazo adaptativo  Normal :)**
+
+
+Este algoritmo busca generar un muestra de cierta función f, trabajando con f longconcava. 
+Se generan tres puntos iniciales y se ordenan de menor a mayor,  se trazan dos lineas, entre los puntos contiguos, y en las iteraciones proóximas se va anexando una recta. 
+
+Para el funcionamiento del algoritmo se necesitó crear funciones auxiliares que facilitaran el trabajo: m (da la pendiente de la recta, dados los nuúmeros x0 y x1),
+recta (da la ecuacion de la recta), ayr (aceptación y rechazo), y aler(variable aleatoria que recibe una unifome y dice a qué intervalo se debe ir.
+
+```{r,echo=FALSE}
+
+##calcula las pendientes
+m<-function(c1,c2){    ##resuleve la pendiente.
+  m<-(log(dnorm(c2))-log(dnorm(c1)))/(c2-c1)
+  return(m)
+}
+
+
+#calcula el intercepto
+b<-function(m,c1){
+  return(-m*c1+log(dnorm(c1)))
+}
+
+
+aler<-function(z,n,u){
+  zz<-(z^-1)
+  zs<-sum(zz)
+  u<-runif(1)
+  t<-1
+  for(i in 1:n){
+    
+    if(sum(zz[1:i])/zs <= u && u <= sum(zz[1:(i+1)])/zs){
+      t<-(i+1)
+    }
+    
+  }
+  return(t)
+  
+  
+}
+
+
+##es aceptacion y rechazo normal 
+
+
+ayr<-function(f,finv){  ## aceptacion y rechazo1,
+  mue<-rep()          ##la constantes c
+  
+  while(length(mue)<1){
+   u<-runif(1)
+    x<-finv(u)
+    y<-runif(1)
+    
+    if(y < (dnorm(x)/f(x))){
+      mue[1]<-x
+    }
+  }
+  return(mue)
+}
+```
+
+
+Las primeras abscisas elegidas fueron (-2,0,1.5), que graficamente nos devuelven:
+
+```{r, echo=FALSE,fig.height=3, fig.width=3.5}
+
+mm<-rep()
+mm[1]<-m(-2,0)
+mm[2]<-m(0,1.5)
+bb<-rep()
+bb[1]<-b(mm[1],-2)
+bb[2]<-b(mm[2],0)
+
+
+curve(log(dnorm(x)), xlim=c(-12,12), ylim=c(-15,3))
+curve(mm[1]*x+bb[1], xlim = c(-15,1.5),ylim=c(-15,0), add=T,col="red")
+curve(mm[2]*x+bb[2], xlim = c(-2,15), ylim=c(-15,0), add=T,col="blue")
+
+```
+
+
+Finalmente usmamos la función de aceptación  y rechazo para que haga las iteraciones que queramos. La función es:
+
+```{r, echo=TRUE}
+
+ar<-function(n){
+  ejex<-c(-2,0,1.5)  ##semilla
+
+  ma<-rep()
+  
+  for( i in 1:n){  #1:n
+    
+    ejex<-sort(ejex)
+    ao<-c(-Inf,ejex,Inf)
+    pn<-rep()# se guardaran las pendientes de  cada recta
+    
+    for(i in 1:(length(ejex)-1)){   #n=1
+      pn[i]<-m(ejex[i],ejex[i+1])
+    }
+    
+    bn<-rep() #se guardan los valores de b
+    for(i in 1:(length(ejex)-1)){   #n=1
+      bn[i]<-b(pn[i],ejex[i])
+    }
+    intersecciones<-rep()
+    
+    if(length(pn)>2){  ##las intersecciones
+      for(i in 1:(length(pn)-2)){
+        intersecciones[i]<-(bn[i+2]-bn[i])/(pn[i]-pn[i+2])
+        ao[length(ao)+1]<-intersecciones[i]
+      }
+      ao<-sort(ao)
+    }
+    
+    z<-rep()
+    ##las rectas tienen una secuencia  1 2 1 3 2 4 3....
+    
+    #la ultilma y primera se llenan asi:
+    z[1]<-((1/pn[1])*(exp(pn[1]*ao[2])-exp(pn[1]*ao[1])))^-1
+    z[length(pn)*2]<-((1/pn[length(pn)])*(exp(pn[length(pn)]*ao[length(ao)])
+                                          -exp(pn[length(pn)]*ao[length(ao)-1])))^-1
+    
+    #llenamos posiciones pares
+    for(i in 1:(length(z)/2-1)){
+      z[2*i]<-((1/pn[i+1])*(exp(pn[i+1]*ao[2*i+1])
+                            -exp(pn[i+1]*ao[2*i])))^-1
+    }
+    
+    ##llenamos las posiciones impares
+    
+    for(i in 1:(length(z)/2-1)){
+      z[2*i+1]<-((1/pn[i])*(exp(pn[i]*ao[2*i+2])   ##2*i+1
+                            -exp(pn[i]*ao[2*i+1])))^-1     ##2*i+1
+    }
+    inter<-aler(z,(length(z)-1))
+    ##fid son las funciones inversas, fd las de densidad por pedazo de rectas
+    ##para intervalo par distinto del ultimo
+    if(inter%%2==0 && inter!=length(z)){
+      fd<-function(x){exp(pn[(inter-2)/2+2]*x)*z[inter]} 
+      fid<-function(u){log((u*pn[(inter-2)/2+2])/z[inter]+exp(pn[(inter-2)/2+2]*ao[(inter)]) )/pn[(inter-2)/2+2]}
+    }
+    
+    ##para intervalo impar distinto del primero
+    
+    if(inter%%2!=0 && inter!=1){
+      fd<-function(x){exp(pn[(inter-3)/2+1]*x)*z[inter]}
+      fid<-function(u){log((u*pn[(inter-3)/2+1])/z[inter]+exp(pn[(inter-3)/2+1]*ao[inter]) )/pn[(inter-3)/2+1]    }
+    }
+    
+    ##para ultimo intervalo
+    if(inter==length(z)){ #se toma la recta inter/2, lengthz siempre es par
+      fd<-function(x){exp(pn[inter/2]*x)*z[inter]}
+      fid<-function(u){log((u*pn[inter/2])/z[length(z)]+exp(pn[inter/2]*ao[length(ao)-1]) )/pn[inter/2]   }
+    }
+    
+    ##para el primer intervalo
+    if(inter==1){
+      fd<-function(x){exp(pn[1]*x)*z[inter]}
+      fid<-function(u){log((u*pn[1])/z[1]+exp(pn[1]*ao[1]) )/pn[1]    }
+    }
+    
+    ##apliquemos la funcion de aceptacion y rehazo
+    aaa<-ayr(fd,fid)
+    
+    ##este sera el nuevo punto 
+    ejex[length(ejex)+1]<-aaa
+    ma[(length(ma)+1)]<-aaa
+    
+  }
+  return(ma)
+}
+
+
+```
+
+
+Teniendo la función anterior podemos calcular las iteraciones deseadas para tener una muestra normal, se considera el tiempo:
+
+**100 iteraciones**
+
+
+```{r,fig.height=3, fig.width=3.5}
+
+set.seed(0)
+p1<-proc.time()
+m1<-ar(100)
+a1<-proc.time()-p1
+plot(density(m1), main="muestra 100")
+
+```
+
+
+*1000 iteraciones*
+
+```{r,fig.height=3, fig.width=3.5}
+
+set.seed(0)
+p2<-proc.time()
+m2<-ar(1000)
+a2<-proc.time()-p2
+plot(density(m2), main = "muestra de 1000")
+
+```
+
+
+**para 2000 iteraciones**
+
+```{r,fig.height=3, fig.width=3.5}
+
+
+set.seed(0)
+p3<-proc.time()
+m3<-ar(2000)
+a3<-proc.time()-p3
+plot(density(m3), main="muestra de 2000")
+
+```
+
+
+Analicemos la muestra obtenida con las dos mil iteraciones: 
+
+```{r, fig.height=3, fig.width=3, warning=FALSE}
+
+qqnorm(m3)   #as[1] es el numero de iteraciones, por tanto no se grafica
+set.seed(0)
+shapiro.test(m3)$p.value
+```
+
+
+como vemos se obtienen resultados muy buenos la prueba nos indica que se debe aceptar la hipótesis que dicta que es, enfecto una distribución normal 
+
+
+Analicemos el tiempo:
+
+observe la tabla siguiente con el tamaño de muestra y los segundos tardados:
+
+```{r, eco=FALSE}
+
+X<-data.frame(c(a1[3],a2[3],a3[3]), row.names = c("n=100", "n=1000","n=2000"))
+colnames(X)[1]<-c("tiempo ")
+X
+```
+
+
+Como se observa el algoritmo, resulta muy costoso después de las 700 iteraciones, por tanto, se hara una modificación al algoritmo, para que deje de actualizar rectas, después de las mil iteraciones: 
+
+```{r, echo=FALSE}
+
+arm<-function(n){
+  ejex<-c(-2,0,1.5)  ##semilla
+
+  ma<-rep()
+  
+  for( i in 1:700){  #se cambia esta parte para que solo se actualice mil veces
+    
+    ejex<-sort(ejex)
+    ao<-c(-Inf,ejex,Inf)
+    pn<-rep()# se guardaran las pendientes de  cada recta
+    
+    for(i in 1:(length(ejex)-1)){   #n=1
+      pn[i]<-m(ejex[i],ejex[i+1])
+    }
+    
+    bn<-rep() #se guardan los valores de b
+    for(i in 1:(length(ejex)-1)){   #n=1
+      bn[i]<-b(pn[i],ejex[i])
+    }
+    intersecciones<-rep()
+    
+    if(length(pn)>2){  ##las intersecciones
+      for(i in 1:(length(pn)-2)){
+        intersecciones[i]<-(bn[i+2]-bn[i])/(pn[i]-pn[i+2])
+        ao[length(ao)+1]<-intersecciones[i]
+      }
+      ao<-sort(ao)
+    }
+    
+    z<-rep()
+    ##las rectas tienen una secuencia  1 2 1 3 2 4 3....
+    
+    #la ultilma y primera se llenan asi:
+    z[1]<-((1/pn[1])*(exp(pn[1]*ao[2])-exp(pn[1]*ao[1])))^-1
+    z[length(pn)*2]<-((1/pn[length(pn)])*(exp(pn[length(pn)]*ao[length(ao)])
+                                          -exp(pn[length(pn)]*ao[length(ao)-1])))^-1
+    
+    #llenamos posiciones pares
+    for(i in 1:(length(z)/2-1)){
+      z[2*i]<-((1/pn[i+1])*(exp(pn[i+1]*ao[2*i+1])
+                            -exp(pn[i+1]*ao[2*i])))^-1
+    }
+    
+    ##llenamos las posiciones impares
+    
+    for(i in 1:(length(z)/2-1)){
+      z[2*i+1]<-((1/pn[i])*(exp(pn[i]*ao[2*i+2])   ##2*i+1
+                            -exp(pn[i]*ao[2*i+1])))^-1     ##2*i+1
+    }
+    inter<-aler(z,(length(z)-1))
+    ##fid son las funciones inversas, fd las de densidad por pedazo de rectas
+    ##para intervalo par distinto del ultimo
+    if(inter%%2==0 && inter!=length(z)){
+      fd<-function(x){exp(pn[(inter-2)/2+2]*x)*z[inter]} 
+      fid<-function(u){log((u*pn[(inter-2)/2+2])/z[inter]+exp(pn[(inter-2)/2+2]*ao[(inter)]) )/pn[(inter-2)/2+2]}
+    }
+    
+    ##para intervalo impar distinto del primero
+    
+    if(inter%%2!=0 && inter!=1){
+      fd<-function(x){exp(pn[(inter-3)/2+1]*x)*z[inter]}
+      fid<-function(u){log((u*pn[(inter-3)/2+1])/z[inter]+exp(pn[(inter-3)/2+1]*ao[inter]) )/pn[(inter-3)/2+1]    }
+    }
+    
+    ##para ultimo intervalo
+    if(inter==length(z)){ #se toma la recta inter/2, lengthz siempre es par
+      fd<-function(x){exp(pn[inter/2]*x)*z[inter]}
+      fid<-function(u){log((u*pn[inter/2])/z[length(z)]+exp(pn[inter/2]*ao[length(ao)-1]) )/pn[inter/2]   }
+    }
+    
+    ##para el primer intervalo
+    if(inter==1){
+      fd<-function(x){exp(pn[1]*x)*z[inter]}
+      fid<-function(u){log((u*pn[1])/z[1]+exp(pn[1]*ao[1]) )/pn[1]    }
+    }
+    
+    ##apliquemos la funcion de aceptacion y rehazo
+    aaa<-ayr(fd,fid)
+    
+    ##este sera el nuevo punto 
+    ejex[length(ejex)+1]<-aaa
+    ma[(length(ma)+1)]<-aaa
+    
+  }
+  
+  for(i in 1:(n-700)){
+    inter<-aler(z,(length(z)-1))
+    ##fid son las funciones inversas, fd las de densidad por pedazo de rectas
+    ##para intervalo par distinto del ultimo
+    if(inter%%2==0 && inter!=length(z)){
+      fd<-function(x){exp(pn[(inter-2)/2+2]*x)*z[inter]} 
+      fid<-function(u){log((u*pn[(inter-2)/2+2])/z[inter]+exp(pn[(inter-2)/2+2]*ao[(inter)]) )/pn[(inter-2)/2+2]}
+    }
+    
+    ##para intervalo impar distinto del primero
+    
+    if(inter%%2!=0 && inter!=1){
+      fd<-function(x){exp(pn[(inter-3)/2+1]*x)*z[inter]}
+      fid<-function(u){log((u*pn[(inter-3)/2+1])/z[inter]+exp(pn[(inter-3)/2+1]*ao[inter]) )/pn[(inter-3)/2+1]    }
+    }
+    
+    ##para ultimo intervalo
+    if(inter==length(z)){ #se toma la recta inter/2, lengthz siempre es par
+      fd<-function(x){exp(pn[inter/2]*x)*z[inter]}
+      fid<-function(u){log((u*pn[inter/2])/z[length(z)]+exp(pn[inter/2]*ao[length(ao)-1]) )/pn[inter/2]   }
+    }
+    
+    ##para el primer intervalo
+    if(inter==1){
+      fd<-function(x){exp(pn[1]*x)*z[inter]}
+      fid<-function(u){log((u*pn[1])/z[1]+exp(pn[1]*ao[1]) )/pn[1]    }
+    }
+    
+    ##apliquemos la funcion de aceptacion y rehazo
+    aaa<-ayr(fd,fid)
+    
+    
+    
+    
+    
+  }
+  
+  return(ma)
+}
+
+```
+
+
+
+```{r}
+ss<-arm(3000)
+plot(density(ss), main="3000 iteraciones, sin actualizar despues de 700")
+set.seed(0)
+shapiro.test(ss)$p.value
+```
+
+De esta manera el algoritmo genera muestras más grandes, con un tiempo mucho menor, y aun pasa las pruebas de normalidad
